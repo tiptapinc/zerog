@@ -4,6 +4,7 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
+import beanstalkt
 import json
 import random
 import time
@@ -54,7 +55,7 @@ class BaseWorker(work_queue.PollHandler):
 
         # TimedOut is from beanstalk, restart queue consumption in
         # poll_interval() time
-        if isinstance(queueJob, work_queue.TimedOut):
+        if isinstance(queueJob, beanstalkt.TimedOut):
             self._reconsume(time.time() + poll_interval())
             return
 

@@ -99,3 +99,24 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+## SNIPPET 3
+# Create a basic job and put it in a beanstalk queue
+import registry
+import datastore_configs
+
+from examples.basic_example import make_basic_job
+
+registry.build_registry()
+datastore_configs.set_datastore_globals()
+
+basic_job_values = {
+    'fieldOne': 'one',
+    'fieldTwo': 2,
+    'fieldThree': 3,
+}
+job = make_basic_job(values=basic_job_values)
+job.enqueue()
+output = dict(uuid=job.uuid)
+

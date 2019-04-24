@@ -6,11 +6,14 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 """
 import queue
 import tornado.web
+import tornado.ioloop
 import utils
 
 import datastore_configs
 import job_log
 import registry
+
+import examples
 
 # from handlers import handlers
 
@@ -25,6 +28,7 @@ log = logging.getLogger(__name__)
 
 class Server(tornado.web.Application):
     def __init__(self, **kwargs):
+        log.info("initializing server")
         datastore_configs.set_datastore_globals()
         registry.build_registry()
 
@@ -40,4 +44,15 @@ class Server(tornado.web.Application):
         job_log.set_watchdog(watchdog)
 
 
-app = Server()
+# app = Server()
+
+
+if __name__ == "__main__":
+    listenPort = 8888
+
+    log.info("geyser-service listening on port %s" % listenPort)
+
+    application = Server()
+    http_server = tornado.httpserver.HTTPServer(application)
+    http_server.listen(listenPort)
+    tornado.ioloop.IOLoop.instance().start()

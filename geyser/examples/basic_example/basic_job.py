@@ -1,6 +1,12 @@
+import time
+
+import job_log
+
 from marshmallow import Schema, fields
 
-from models import BaseJobSchema, BaseJob
+from jobs import BaseJobSchema, BaseJob, make_base_job
+
+BASIC_JOB_TYPE = "basic_job"
 
 
 class BasicSchema(BaseJobSchema):
@@ -23,4 +29,13 @@ class BasicJob(BaseJob):
 
     def run(self):
         # Adds the contents of fieldTwo and fieldThree
-        pass
+        job_log.info('Starting processing basic job')
+        time.sleep(5)
+
+        job_log.info('Finished processing basic job')
+        self.record_result(200)
+
+        return time.time(), False
+
+def make_basic_job(values={}):
+    return make_base_job(values, BASIC_JOB_TYPE)
