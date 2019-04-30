@@ -9,10 +9,9 @@ import tornado.web
 import tornado.ioloop
 
 import datastore_configs
-import job_log
 import registry
 
-import examples
+from examples import handlers
 
 import logging
 logging.basicConfig(
@@ -25,29 +24,20 @@ log = logging.getLogger(__name__)
 
 class Server(tornado.web.Application):
     def __init__(self, **kwargs):
-        log.info("initializing server")
-        datastore_configs.set_datastore_globals()
+        log.info("initializing example server")
         registry.build_registry()
+        datastore_configs.set_datastore_globals()
 
-        self.workers = []
-        for queueName in queue.WORKER_QUEUES:
-            log.info("worker listening on queue: %s" % queueName)
-            self.workers.append(queue.BaseWorker(queueName))
-
-        super(Server, self).__init__([], **kwargs)
-
-    def set_watchdog(self, watchdog):
-        log.info("setting watchdog")
-        job_log.set_watchdog(watchdog)
+        super(Server, self).__init__(handlers, **kwargs)
 
 
 # app = Server()
 
 
 if __name__ == "__main__":
-    listenPort = 8888
+    listenPort = 8880
 
-    log.info("geyser-service listening on port %s" % listenPort)
+    log.info("geyser-api listening on port %s" % listenPort)
 
     application = Server()
     http_server = tornado.httpserver.HTTPServer(application)

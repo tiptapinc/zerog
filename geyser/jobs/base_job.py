@@ -24,8 +24,8 @@ log = logging.getLogger(__name__)
 DEFAULT_JOB_LIFESPAN = 0
 DEFAULT_TTR = 3600 * 24   # long because broken workers are killed
 
-JOB_DOCUMENT_TYPE = "wf2_job"
-BASE_JOB_TYPE = "wf2_base"
+JOB_DOCUMENT_TYPE = "geyser_job"
+BASE_JOB_TYPE = "geyser_base"
 
 
 class BaseJobSchema(Schema):

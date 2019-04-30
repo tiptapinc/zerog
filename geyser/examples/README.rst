@@ -62,3 +62,30 @@ Open a python console to create and queue an instance of the job.
     output = dict(uuid=job.uuid)
 
 The job should complete successfully. A new document should show up in couchbase representing the job.
+
+Run Locally with API Server
+---------------------------
+This will boot up both the geyser server and an API server to handle HTTP requests for kicking off jobs.
+
+Make sure both beanstalk and couchbase are running locally.
+
+Start up the geyser server.
+
+.. code-block:: shell
+
+    python server.py
+
+
+Start up the API server.
+
+.. code-block:: shell
+
+    python example_server.py
+
+
+Make a request to /basic/example.
+
+.. code-block:: shell
+
+    curl http://localhost:8880/basic/example --data '{"fieldOne":"ONE", "fieldTwo":2, "fieldThree":3}'
+

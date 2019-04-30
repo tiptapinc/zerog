@@ -2,7 +2,7 @@ import time
 
 import job_log
 
-from marshmallow import Schema, fields
+from marshmallow import fields
 
 from jobs import BaseJobSchema, BaseJob, make_base_job
 
@@ -36,6 +36,7 @@ class BasicJob(BaseJob):
         self.record_result(200)
 
         return time.time(), False
+
 
 def make_basic_job(values={}):
     return make_base_job(values, BASIC_JOB_TYPE)

@@ -13,6 +13,7 @@ DATASTORE = None
 LOCALHOST_COUCHBASE_PORT = 8091
 BUCKET_NAME = "geyser"
 
+
 def set_datastore_globals():
     global DATASTORE
 
