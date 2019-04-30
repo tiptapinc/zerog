@@ -21,8 +21,6 @@ class BasicHandler(tornado.web.RequestHandler):
         '''
         Kick off a BasicJob.
         '''
-        log.info(f'received self.request.body: {self.request.body}')
-
         params = tornado.escape.json_decode(self.request.body)
 
         log.info(f'kicking off basic job with args: {params}')
