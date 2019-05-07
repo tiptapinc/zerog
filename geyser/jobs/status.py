@@ -13,7 +13,6 @@ from .error import ErrorSchema
 from .event import EventSchema
 
 
-
 class StatusSchema(Schema):
     completenesses = DictField(
         fields.Str(),

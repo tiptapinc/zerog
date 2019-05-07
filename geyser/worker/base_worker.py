@@ -12,9 +12,9 @@ import traceback
 
 import job_log
 
-from . import queue_globals
-from . import sync_queue
-from . import work_queue
+from queue import queue_globals
+from queue import sync_queue
+from queue import work_queue
 
 from jobs import get_base_job
 

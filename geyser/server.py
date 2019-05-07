@@ -4,14 +4,21 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
+
+# for some godforsaken reason this has to go first otherwise
+# tornado complains to all hell.
 import queue
+
 import tornado.web
 import tornado.ioloop
 
 import datastore_configs
 import job_log
 import registry
+import worker
 
+# import these so that the subclasses of BaseJob will be
+# added by the registry.
 import examples
 
 import logging
@@ -30,9 +37,9 @@ class Server(tornado.web.Application):
         registry.build_registry()
 
         self.workers = []
-        for queueName in queue.WORKER_QUEUES:
+        for queueName in worker.WORKER_QUEUES:
             log.info("worker listening on queue: %s" % queueName)
-            self.workers.append(queue.BaseWorker(queueName))
+            self.workers.append(worker.BaseWorker(queueName))
 
         super(Server, self).__init__([], **kwargs)
 

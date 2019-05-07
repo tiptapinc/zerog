@@ -2,6 +2,9 @@
 Geyser
 ******
 
+Geyser is a queueing system specifically designed to accomodate long running jobs in a maintainable fashion.
+
+
 Key Components
 ==============
 
