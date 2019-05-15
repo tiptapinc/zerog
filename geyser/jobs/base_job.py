@@ -91,6 +91,8 @@ class BaseJob(object):
         self.resultCode = kwargs.get('resultCode', queue_globals.NO_RESULT)
         self.resultString = kwargs.get('resultString', "")
 
+        self._validate_parameters()
+
     def dump(self):
         return self.SCHEMA().dump(self).data
 
@@ -249,6 +251,30 @@ class BaseJob(object):
         )
         if lost:
             self.enqueue(**self.queueKwargs)
+
+    def _validate_parameters(self):
+        parameters = {
+            'documentType': self.documentType,
+            'jobType': self.jobType,
+            'schemaVersion': self.schemaVersion,
+
+            'createdAt': self.dump()['createdAt'],
+            'updatedAt': self.dump()['updatedAt'],
+            'cas': self.cas,
+
+            'uuid': self.uuid,
+            'logId': self.logId,
+
+            'queueKwargs': self.queueKwargs,
+            'queueJobId': self.queueJobId,
+
+            'events': self.events,
+            'errors': self.errors,
+            'completeness': self.completeness,
+            'resultCode': self.resultCode,
+            'resultString': self.resultString,
+        }
+        self.SCHEMA(strict=True).load(parameters)
 
     def run(self):
         # override this method to execute the job. It is called by
