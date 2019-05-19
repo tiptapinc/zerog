@@ -4,6 +4,12 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
+
+#
+# NOTES:
+#   - make it possible to kill a job??
+#
+
 import datetime
 import random
 import time
@@ -58,7 +64,7 @@ class BaseJobSchema(Schema):
 
 
 class BaseJob(object):
-    DOCUMENT_TYPE = JOB_DOCUMENT_TYPE
+    DOCUMENT_TYPE = JOB_DOCUMENT_TYPE   # very important for key value ds
     JOB_TYPE = BASE_JOB_TYPE
     LIFESPAN = DEFAULT_JOB_LIFESPAN
     SCHEMA_VERSION = 1.0
@@ -92,6 +98,7 @@ class BaseJob(object):
         self.resultCode = kwargs.get('resultCode', queue_globals.NO_RESULT)
         self.resultString = kwargs.get('resultString', "")
 
+        # expensive --> should only instantiate from `make_base_job` anyway
         self._validate_parameters()
 
     def dump(self):
@@ -144,6 +151,8 @@ class BaseJob(object):
         the datastore.
 
         In case of an error, reload the job from the datastore and retry.
+
+        NOTE: How much is couchbase dependent?
         """
         for _ in range(10):
             try:

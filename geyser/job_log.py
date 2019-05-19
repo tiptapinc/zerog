@@ -4,6 +4,11 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
+
+#
+# NOTE: globals here not so good (in case multiple jobs run at once)
+#
+
 import datetime
 
 from geyser.queue import queue_globals
