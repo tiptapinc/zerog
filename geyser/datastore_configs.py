@@ -6,7 +6,7 @@ Copyright (c) 2016 MotiveMetrics. All rights reserved.
 module-wide global
 
 """
-import datastore
+import geyser.datastore
 
 DATASTORE = None
 
@@ -21,7 +21,7 @@ def set_datastore_globals():
     bucket = BUCKET_NAME
 
     if DATASTORE is None:
-        DATASTORE = datastore.Datastore(
+        DATASTORE = geyser.datastore.Datastore(
             "localhost",
             port,
             bucket,

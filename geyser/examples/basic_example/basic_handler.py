@@ -3,7 +3,7 @@ import tornado
 
 import tornado.web
 
-from examples.basic_example import make_basic_job
+from geyser.examples.basic_example import make_basic_job
 
 import logging
 log = logging.getLogger(__name__)

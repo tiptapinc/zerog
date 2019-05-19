@@ -10,13 +10,11 @@ import random
 import time
 import traceback
 
-import job_log
+import geyser.job_log as job_log
 
-from queue import queue_globals
-from queue import sync_queue
-from queue import work_queue
+from geyser.queue import queue_globals, sync_queue, work_queue
 
-from jobs import get_base_job
+from geyser.jobs import get_base_job
 
 import logging
 log = logging.getLogger(__name__)

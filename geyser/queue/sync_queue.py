@@ -6,7 +6,8 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 """
 import beanstalkc
 import json
-import utils
+
+import geyser.utils as utils
 
 import logging
 log = logging.getLogger(__name__)

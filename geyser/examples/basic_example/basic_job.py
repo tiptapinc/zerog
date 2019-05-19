@@ -1,10 +1,10 @@
 import time
 
-import job_log
-
 from marshmallow import fields
 
-from jobs import BaseJobSchema, BaseJob, make_base_job
+import geyser.job_log as job_log
+
+from geyser.jobs import BaseJobSchema, BaseJob, make_base_job
 
 BASIC_JOB_TYPE = "basic_job"
 

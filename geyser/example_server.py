@@ -4,14 +4,15 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
-import queue
+import geyser.queue as queue
+
 import tornado.web
 import tornado.ioloop
 
-import datastore_configs
-import registry
+import geyser.datastore_configs as datastore_configs
+import geyser.registry as registry
 
-from examples import handlers
+from geyser.examples import handlers
 
 import logging
 logging.basicConfig(

@@ -8,15 +8,16 @@ import datetime
 import random
 import time
 
-import datastore_configs
-import utils
+from marshmallow import Schema, fields
+
+import geyser.datastore_configs as datastore_configs
+import geyser.utils as utils
+
+from geyser.datastore import KeyExistsError, TemporaryFailError
+from geyser.queue import queue_globals, sync_queue
 
 from .error import ErrorSchema, make_error
 from .event import EventSchema, make_event
-
-from datastore import KeyExistsError, TemporaryFailError
-from marshmallow import Schema, fields
-from queue import queue_globals, sync_queue
 
 import logging
 log = logging.getLogger(__name__)

@@ -6,8 +6,8 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 """
 from marshmallow import Schema, fields, post_load
 
-from queue import queue_globals
-from utils import DictField
+from geyser.queue import queue_globals
+from geyser.utils import DictField
 
 from .error import ErrorSchema
 from .event import EventSchema

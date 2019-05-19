@@ -5,7 +5,8 @@ Copyright (c) 2014 tiptap. All rights reserved.
 """
 import beanstalkt
 import tornado.ioloop
-import utils
+
+import geyser.utils as utils
 
 import logging
 log = logging.getLogger(__name__)

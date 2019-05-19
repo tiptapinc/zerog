@@ -7,19 +7,19 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 # for some godforsaken reason this has to go first otherwise
 # tornado complains to all hell.
-import queue
+import geyser.queue as queue
 
 import tornado.web
 import tornado.ioloop
 
-import datastore_configs
-import job_log
-import registry
-import worker
+import geyser.datastore_configs as datastore_configs
+import geyser.job_log as job_log
+import geyser.registry as registry
+import geyser.worker as worker
 
 # import these so that the subclasses of BaseJob will be
 # added by the registry.
-import examples
+import geyser.examples
 
 import logging
 logging.basicConfig(
