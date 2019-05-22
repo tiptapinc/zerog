@@ -11,7 +11,7 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 import datetime
 
-from geyser.queue import queue_globals
+from geyser.geyser_queue import queue_globals
 
 import logging
 log = logging.getLogger(__name__)

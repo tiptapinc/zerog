@@ -12,7 +12,7 @@ import traceback
 
 import geyser.job_log as job_log
 
-from geyser.queue import queue_globals, sync_queue, work_queue
+from geyser.geyser_queue import queue_globals, sync_queue, work_queue
 
 from geyser.jobs import get_base_job
 

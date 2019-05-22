@@ -20,7 +20,7 @@ import geyser.datastore_configs as datastore_configs
 import geyser.utils as utils
 
 from geyser.datastore import KeyExistsError, TemporaryFailError
-from geyser.queue import queue_globals, sync_queue
+from geyser.geyser_queue import queue_globals, sync_queue
 
 from .error import ErrorSchema, make_error
 from .event import EventSchema, make_event

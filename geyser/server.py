@@ -4,15 +4,11 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
-
-# for some godforsaken reason this has to go first otherwise
-# tornado complains to all hell.
-import geyser.queue as queue
-
 import tornado.web
 import tornado.ioloop
 
 import geyser.datastore_configs as datastore_configs
+import geyser.geyser_queue as queue
 import geyser.job_log as job_log
 import geyser.registry as registry
 import geyser.workers as workers
