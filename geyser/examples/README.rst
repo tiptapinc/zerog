@@ -17,6 +17,19 @@ Beanstalk will default to using port 11300 locally.
     # stop daemon
     sh scripts/local_beanstalkd.sh stop
 
+Some other useful beanstalkd commands.
+
+.. code-block:: shell
+
+    # display beanstalkd stats
+    echo "stats" | nc -c localhost 11300
+
+    # list active tube names
+    echo "list-tubes" | nc -c localhost 11300
+
+    # display stats for a specific tube
+    echo "stats-tube basic_job" | nc -c localhost 11300
+
 
 Start local instance of couchbase
 ----------------------------------

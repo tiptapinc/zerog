@@ -4,8 +4,6 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
-import geyser.geyser_queue as queue
-
 import tornado.web
 import tornado.ioloop
 

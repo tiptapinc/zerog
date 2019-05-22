@@ -4,15 +4,14 @@
 Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 """
-import beanstalkt
+import beanstalkc
 import json
 import random
 import time
 import traceback
 
 import geyser.job_log as job_log
-
-from geyser.geyser_queue import queue_globals, sync_queue, work_queue
+import geyser.geyser_queue as geyser_queue
 
 from geyser.jobs import get_base_job
 
@@ -29,7 +28,7 @@ def poll_interval():
     return random.random() * POLL_INTERVAL + POLL_INTERVAL / 2.0
 
 
-class BaseWorker(work_queue.PollHandler):
+class BaseWorker(geyser_queue.queue_handler.QueueHandler):
     """
     Base worker class, which consumes jobs from a queue
     and runs them.
@@ -44,8 +43,8 @@ class BaseWorker(work_queue.PollHandler):
 
         self.queueName = queueName
 
-        # defined in work_queue.PollHandler, reserves a job from beanstalk with
-        # callback _process_queue_job
+        # defined in queue_handler.QueueHandler, reserves a job from beanstalk,
+        # and then calls _process_queue_job
         self._consume()
 
     def _process_queue_job(self, queueJob):
@@ -53,13 +52,13 @@ class BaseWorker(work_queue.PollHandler):
 
         # TimedOut is from beanstalk, restart queue consumption in
         # poll_interval() time
-        if isinstance(queueJob, beanstalkt.TimedOut):
-            self._reconsume(time.time() + poll_interval())
-            return
+        # if isinstance(queueJob, beanstalkc.TimedOut):
+        #     self._reconsume(time.time() + poll_interval())
+        #     return
 
         # if the job is an Exception of any kind, log it and restart queue
         # consumption in poll_interval() time
-        elif isinstance(queueJob, Exception):
+        if isinstance(queueJob, Exception):
             log.warning(
                 "exception for queue %s: %s" %
                 (self.queueName, str(queueJob))
@@ -68,11 +67,12 @@ class BaseWorker(work_queue.PollHandler):
             return
 
         # queueJobId = id given to job by beanstalk
-        queueJobId = queueJob['id']
-        stats = sync_queue.QUEUE.stats_job(queueJobId)
+        queueJobId = queueJob.jid
+
+        stats = geyser_queue.sync_queue.QUEUE.stats_job(queueJobId)
 
         # jobId = uuid used to identify job in database
-        jobId = json.loads(queueJob['body'])
+        jobId = json.loads(queueJob.body)
 
         try:
             job = None
@@ -112,13 +112,13 @@ class BaseWorker(work_queue.PollHandler):
             # restart queue consumption in poll_interval() time
             self._reconsume(time.time() + poll_interval())
 
-        except queue_globals.WFErrorFinish:
+        except geyser_queue.queue_globals.WFErrorFinish:
             # error has already been recorded and job is done
             self.queue.delete(queueJobId)
             self._reconsume(time.time() + poll_interval())
             return
 
-        except queue_globals.WFErrorContinue:
+        except geyser_queue.queue_globals.WFErrorContinue:
             # error has been recorded, but job can be tried again
             if self.manage_retries(queueJobId, stats, jobId, job) is False:
                 self.queue.release(queueJobId, delay=10)
@@ -129,7 +129,7 @@ class BaseWorker(work_queue.PollHandler):
         except:
             if job:
                 job.record_error(
-                    queue_globals.INTERNAL_ERROR,
+                    geyser_queue.queue_globals.INTERNAL_ERROR,
                     traceback.format_exc()
                 )
 
@@ -163,7 +163,7 @@ class BaseWorker(work_queue.PollHandler):
             msg = "more than %s, deleting from queue" % tooMany
 
             if job:
-                job.record_result(queue_globals.INTERNAL_ERROR, msg)
+                job.record_result(geyser_queue.queue_globals.INTERNAL_ERROR, msg)
             else:
                 log.warning("%s: %s" % (jobId, msg))
 

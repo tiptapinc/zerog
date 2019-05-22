@@ -8,14 +8,9 @@ import tornado.web
 import tornado.ioloop
 
 import geyser.datastore_configs as datastore_configs
-import geyser.geyser_queue as queue
 import geyser.job_log as job_log
 import geyser.registry as registry
 import geyser.workers as workers
-
-# import these so that the subclasses of BaseJob will be
-# added by the registry.
-import geyser.examples
 
 import logging
 logging.basicConfig(

@@ -7,8 +7,6 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 import beanstalkc
 import json
 
-import geyser.utils as utils
-
 import logging
 log = logging.getLogger(__name__)
 
@@ -29,10 +27,6 @@ class SyncQueue(object):
     def put(self, queueName, data, **kwargs):
         self.do_bean("use", queueName)
         return self.do_bean("put", json.dumps(data), **kwargs)
-
-    def reserve(self, queueName, **kwargs):
-        self.do_bean("use", queueName)
-        return self.do_bean("reserve", **kwargs)
 
     def delete(self, jobId):
         self.do_bean("delete", jobId)

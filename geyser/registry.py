@@ -11,9 +11,11 @@ from geyser.workers import register_worker
 # note: sketchy but this has to go after queue because circular imports, would
 # probably be good to look into alternatives...
 # jobs --> queue --> base_worker --> jobs
-from jobs import BaseJob, register_job
+from geyser.jobs import BaseJob, register_job
+
 
 JOB_MODULES = [
+    "geyser.examples"
 ]
 
 

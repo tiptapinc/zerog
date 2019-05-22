@@ -1,6 +1,4 @@
-import datetime
-import json
-import marshmallow
+import beanstalkc
 import pytest
 import time
 
@@ -9,7 +7,7 @@ import time
 import pdb
 
 from geyser import jobs
-from geyser import queue
+from geyser import geyser_queue
 from geyser import workers
 
 
@@ -20,7 +18,7 @@ from geyser import workers
 #   -
 #
 
-TEST_QUEUE_NAME = "test queue"
+TEST_QUEUE_NAME = "test_queue"
 
 
 class WFTestError(Exception):
@@ -44,7 +42,7 @@ class MockJobError(jobs.BaseJob):
 
         self.error = kwargs.get(
             'error',
-            queue.queue_globals.WFErrorFinish,
+            geyser_queue.queue_globals.WFErrorFinish,
         )
 
     def run(self):
@@ -59,10 +57,7 @@ class TestBaseWorker(object):
 
     def test_process_queue_job_success(self, mocker):
         mock_job = MockJob()
-        queue_job = {
-            "id": 1,
-            "body": f'"{mock_job.uuid}"',
-        }
+        queue_job = beanstalkc.Job(None, 1, f'"{mock_job.uuid}"')
 
         base_worker = self._set_up_process_queue_mocks(mocker, mock_job)
         mocker.patch.object(base_worker.queue, 'delete')
@@ -70,15 +65,12 @@ class TestBaseWorker(object):
 
         base_worker._process_queue_job(queue_job)
 
-        base_worker.queue.delete.assert_called_once_with(queue_job["id"])
+        base_worker.queue.delete.assert_called_once_with(queue_job.jid)
         assert not mock_job.enqueue.called
 
     def test_process_queue_job_success_requeue(self, mocker):
         mock_job = MockJob(requeue=True)
-        queue_job = {
-            "id": 1,
-            "body": f'"{mock_job.uuid}"',
-        }
+        queue_job = beanstalkc.Job(None, 1, f'"{mock_job.uuid}"')
 
         base_worker = self._set_up_process_queue_mocks(mocker, mock_job)
         mocker.patch.object(base_worker.queue, 'delete')
@@ -86,15 +78,12 @@ class TestBaseWorker(object):
 
         base_worker._process_queue_job(queue_job)
 
-        base_worker.queue.delete.assert_called_once_with(queue_job["id"])
+        base_worker.queue.delete.assert_called_once_with(queue_job.jid)
         mock_job.enqueue.assert_called_once_with(delay=0)
 
     def test_process_queue_job_wferror_finish(self, mocker):
-        mock_job = MockJobError(error=queue.queue_globals.WFErrorFinish)
-        queue_job = {
-            "id": 1,
-            "body": f'"{mock_job.uuid}"',
-        }
+        mock_job = MockJobError(error=geyser_queue.queue_globals.WFErrorFinish)
+        queue_job = beanstalkc.Job(None, 1, f'"{mock_job.uuid}"')
 
         base_worker = self._set_up_process_queue_mocks(mocker, mock_job)
         mocker.patch.object(base_worker.queue, 'delete')
@@ -102,15 +91,14 @@ class TestBaseWorker(object):
 
         base_worker._process_queue_job(queue_job)
 
-        base_worker.queue.delete.assert_called_once_with(queue_job["id"])
+        base_worker.queue.delete.assert_called_once_with(queue_job.jid)
         assert not mock_job.enqueue.called
 
     def test_process_queue_job_wferror_continue(self, mocker):
-        mock_job = MockJobError(error=queue.queue_globals.WFErrorContinue)
-        queue_job = {
-            "id": 1,
-            "body": f'"{mock_job.uuid}"',
-        }
+        mock_job = MockJobError(
+            error=geyser_queue.queue_globals.WFErrorContinue
+        )
+        queue_job = beanstalkc.Job(None, 1, f'"{mock_job.uuid}"')
 
         base_worker = self._set_up_process_queue_mocks(mocker, mock_job)
         mocker.patch.object(base_worker.queue, 'delete')
@@ -120,7 +108,7 @@ class TestBaseWorker(object):
         base_worker._process_queue_job(queue_job)
 
         base_worker.queue.release.assert_called_once_with(
-            queue_job["id"],
+            queue_job.jid,
             delay=10,
         )
         assert not base_worker.queue.delete.called
@@ -128,10 +116,7 @@ class TestBaseWorker(object):
 
     def test_process_queue_job_internal_error(self, mocker):
         mock_job = MockJobError(error=WFTestError)
-        queue_job = {
-            "id": 1,
-            "body": f'"{mock_job.uuid}"',
-        }
+        queue_job = beanstalkc.Job(None, 1, f'"{mock_job.uuid}"')
 
         base_worker = self._set_up_process_queue_mocks(mocker, mock_job)
         mocker.patch.object(base_worker.queue, 'delete')
@@ -143,7 +128,7 @@ class TestBaseWorker(object):
             base_worker._process_queue_job(queue_job)
 
             base_worker.queue.release.assert_called_once_with(
-                queue_job["id"],
+                queue_job.jid,
                 delay=10,
             )
             mock_job.record_error.assert_called_once()
@@ -194,7 +179,7 @@ class TestBaseWorker(object):
 
         base_worker.queue.delete.assert_called_once_with(queueJobId)
         job.record_result.assert_called_once_with(
-            queue.queue_globals.INTERNAL_ERROR,
+            geyser_queue.queue_globals.INTERNAL_ERROR,
             "more than 3 reserves, deleting from queue",
         )
 
@@ -220,7 +205,7 @@ class TestBaseWorker(object):
 
         base_worker.queue.delete.assert_called_once_with(queueJobId)
         job.record_result.assert_called_once_with(
-            queue.queue_globals.INTERNAL_ERROR,
+            geyser_queue.queue_globals.INTERNAL_ERROR,
             "more than 3 timeouts, deleting from queue",
         )
 
@@ -234,7 +219,7 @@ class TestBaseWorker(object):
 
         mocker.patch.object(base_worker, 'manage_retries', return_value=False)
         mocker.patch.object(
-            queue.sync_queue.QUEUE,
+            geyser_queue.sync_queue.QUEUE,
             'stats_job',
             return_value={},
         )
