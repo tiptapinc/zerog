@@ -15,7 +15,7 @@ import tornado.ioloop
 import geyser.datastore_configs as datastore_configs
 import geyser.job_log as job_log
 import geyser.registry as registry
-import geyser.worker as worker
+import geyser.workers as workers
 
 # import these so that the subclasses of BaseJob will be
 # added by the registry.
@@ -37,9 +37,9 @@ class Server(tornado.web.Application):
         registry.build_registry()
 
         self.workers = []
-        for queueName in worker.WORKER_QUEUES:
+        for queueName in workers.WORKER_QUEUES:
             log.info("worker listening on queue: %s" % queueName)
-            self.workers.append(worker.BaseWorker(queueName))
+            self.workers.append(workers.BaseWorker(queueName))
 
         super(Server, self).__init__([], **kwargs)
 

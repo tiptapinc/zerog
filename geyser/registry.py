@@ -6,7 +6,7 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 """
 import importlib
 
-from geyser.worker import register_worker
+from geyser.workers import register_worker
 
 # note: sketchy but this has to go after queue because circular imports, would
 # probably be good to look into alternatives...
