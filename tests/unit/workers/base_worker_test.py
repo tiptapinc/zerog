@@ -14,9 +14,6 @@ from geyser import workers
 #
 # Unit tests for base_worker.
 #
-# Notes:
-#   -
-#
 
 TEST_QUEUE_NAME = "test_queue"
 
