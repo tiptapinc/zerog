@@ -48,54 +48,125 @@ Creating a New Job
 
 All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attributes required for geyser to identify, save, run, and report on a job. BaseJob includes the methods for saving jobs to the datastore (currently Couchbase), loading jobs from the datastore, instantiating jobs based on the data from the datastore, enqueuing jobs on their respective queues, and updating job attributes.
 
+*MyJob*
+    MyJob inherits from :code:`geyser.BaseJob` to have all of the required base functionality and attributes. The developer can add additional attributes in :code:`__init__` as required for a job's function as well as the job type and queue name for the specific job. The inheriting class must overwrite the :code:`run` method.
 
-MyJob
-^^^^^
-MyJob inherits from :code:`geyser.BaseJob` to have all of the required base functionality and attributes. The developer can add additional attributes in :code:`__init__` as required for a job's function as well as the job type and queue name for the specific job. The inheriting class must overwrite the :code:`run` method.
+    .. code-block:: python
 
-.. code-block:: python
+       def run(self):
+            """
+            fill in with custom functionality
 
-   def run(self):
-        """
-        fill in with custom functionality
+            this method must return a tuple consisting of:
+               - the time (in epoch seconds) at which to resume
+                 consuming from the queue
 
-        this method must return a tuple consisting of:
-           - the time (in epoch seconds) at which to resume
-             consuming from the queue
+               - a boolean indicating whether the job should be
+                 re-queued for further processing
+            """
+            return time.time(), False
 
-           - a boolean indicating whether the job should be
-             re-queued for further processing
-        """
-        return time.time(), False
+    Geyser has a few special error types that can be raised in the :code:`run` method.
 
-Geyser has a few special error types that can be raised in the :code:`run` method.
+    *geyser.WFErrorFinish*
+        job execution is terminated, and job is not requeued
+    *geyser.WFErrorContinue*
+        job execution is terminated, but the job is requeued within its retry limit for re-execution
+*MyJobSchema*
+    MyJobSchema explicitly declares and provides validation for the inputs to MyJob. In order to use the schema validation provided by the marshmallow package, jobs must be instantiated via the :code:`make_base_job` method.
 
-    :code:`geyser.WFErrorFinish`: job execution is terminated, and job is not requeued
+    .. code-block:: python
 
-    :code:`geyser.WFErrorContinue`: job execution is terminated, but the job is requeued within its retry limit for re-execution
+        # Use this creator function to create a job where the schema gets validated
+        def make_my_job(values={}):
+            return geyser.jobs.make_base_job(values, MY_JOB_TYPE)
+*Registry*
+    Registry is the current mechanism by which Geyser keeps track of jobs and queues. In order to add a job to the registry, add it to :code:`geyser.registry.JOB_MODULES`.
+
+    .. code-block:: python
+
+        geyser.registry.JOB_MODULES = geyser.registry.JOB_MODULES + [
+            "geyser.examples"
+        ]
 
 
-MyJobSchema
-^^^^^^^^^^^
-MyJobSchema explicitly declares and provides validation for the inputs to MyJob. In order to use the schema validation provided by the marshmallow package, jobs must be instantiated via the :code:`make_base_job` method.
+Using Job Log to Track Job
+--------------------------
 
-.. code-block:: python
+``job_log.py`` contains a set of helper functions and variables that allow jobs to report on their progress, record information, raise errors, and provide heartbeats to keep long running jobs alive.
 
-    # Use this creator function to create a job where the schema gets validated
-    def make_my_job(values={}):
-        return geyser.jobs.make_base_job(values, MY_JOB_TYPE)
+*set_completeness(completeness, enforceMinInterval=False)*
+    :completeness:
+        float
 
+        The completeness of a job measured by the developer's definition. A common implementation is a scale from 0 to 1 with 0 being not started and 1 being fully completed.
+    :enforceMinInterval:
+        boolean
 
-Registry
-^^^^^^^^
-Registry is the current mechanism by which Geyser keeps track of jobs and queues. In order to add a job to the registry, add it to :code:`geyser.registry.JOB_MODULES`.
+        If True, requires updates to be at least 2 seconds apart.
 
-.. code-block:: python
+    Manually set the completeness of a job.
 
-    geyser.registry.JOB_MODULES = geyser.registry.JOB_MODULES + [
-        "geyser.examples"
-    ]
+*track_completeness(start, end, intervals)*
+    :start:
+        float
 
+        The completeness range start.
+    :end:
+        float
+
+        The completeness range end.
+    :intervals:
+        float
+
+        The number of intervals for completeness tracking that will occur between start and end. For example, a job with 5 equal steps might have 5 intervals with a start of 0.0 and an end of 1.0.
+
+    Set up job log to be able to track completeness in set intervals.
+
+*increment_completeness()*
+    Use together with ``track_completeness`` to take advantage of automatic completeness calculations. Each call to ``increment_completeness`` will increment the current interval for a job's completeness.
+
+    Defaults to :code:`start=0.0`, :code:`end=1.0`, :code:`interval=1`.
+
+*info(msg)*
+    :msg:
+        string
+
+        Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
+
+    Record a message on a job.
+
+*error_log_only(msg)*
+    :msg:
+        string
+
+        Error message to be logged. This message will not be associated with the job datastore entry.
+
+    Log an error that occurred during execution of the job. This error will stop immediate execution of the job, but will allow the job to be requeued for further retries.
+
+*error_continue(errorCode, msg)*
+    :errorCode:
+        int
+
+        Error code for this particular error.
+    :msg:
+        string
+
+        Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
+
+    Record an error on a job. This error will stop immediate execution of the job, but will allow the job to be requeued for further retries.
+
+*error_finish(errorCode, msg)*
+    :errorCode:
+        int
+
+        Error code for this particular error.
+    :msg:
+        string
+
+        Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
+
+    Record an error on a job. This error will stop immediate execution of the job, and the job will be removed from the queue.
 
 Creating a New Handler
 ----------------------
