@@ -31,13 +31,13 @@ The flow of information in Geyser is shown at a high level in the following diag
                                        __________________                    /
                                        ||              ||                   /
                                        || BaseWorker   ||                  /
-                                       ||  - init job  || <----------------
+                                       ||  - init job  || <---------------
                                        ||  - job.run() ||
                                        ||              ||
                                        ------------------
 
 
-A developer can create an application that has an API layer with endpoints corresponding to jobs. A :code:`POST` request to one of thse endpoints will kick off the job queueing process. The job corresponding with that endpoint will be created, saved to the datastore, and its uuid added to the corresponding beanstalk tube ("queue"). Workers watching these queues will pick up jobs as they come in. The workers will pull the correct job information from the datastore by job uuid, instantiate the job by its job type, and then run the job. Any updates that occur during the execution of the job, such as progress updates, will be intermittenly saved to the datastore, and so the job data can be pulled at anytime by a watcher to keep track of the progress of the job.
+A developer creates an application with an API layer with endpoints corresponding to jobs. A :code:`POST` request to one of thse endpoints will kick off the job queueing process. The job corresponding with that endpoint will be created, saved to the datastore, and its uuid added to the corresponding beanstalk tube ("queue"). Workers watching these queues will pick up jobs as they come in. The workers will pull the correct job information from the datastore by job uuid, instantiate the job by its job type, and then run the job. Any updates that occur during the execution of the job, such as progress updates, will be intermittenly saved to the datastore, and so the job data can be pulled at anytime by a watcher to keep track of the progress of the job.
 
 
 Using Geyser
@@ -47,8 +47,6 @@ Creating a New Job
 ------------------
 
 All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attributes required for geyser to identify, save, run, and report on a job. BaseJob includes the methods for saving jobs to the datastore (currently Couchbase), loading jobs from the datastore, instantiating jobs based on the data from the datastore, enqueuing jobs on their respective queues, and updating job attributes.
-
-New jobs can be created as follows:
 
 
 MyJob
@@ -79,18 +77,18 @@ Geyser has a few special error types that can be raised in the :code:`run` metho
 
 MyJobSchema
 ^^^^^^^^^^^
-MyJobSchema explicitly declares and provides validation for the inputs to MyJob. In order to use the validation provided by the marshmallow package, jobs must be instantiated via the :code:`make_base_job` method.
+MyJobSchema explicitly declares and provides validation for the inputs to MyJob. In order to use the schema validation provided by the marshmallow package, jobs must be instantiated via the :code:`make_base_job` method.
 
 .. code-block:: python
 
     # Use this creator function to create a job where the schema gets validated
-    def make_basic_job(values={}):
+    def make_my_job(values={}):
         return geyser.jobs.make_base_job(values, MY_JOB_TYPE)
 
 
 Registry
 ^^^^^^^^
-Registry is the current mechanism by which Geyser keeps track of which jobs and queues it needs to be aware of. In order to add a job to the registry, add it to :code:`geyser.registry.JOB_MODULES`.
+Registry is the current mechanism by which Geyser keeps track of jobs and queues. In order to add a job to the registry, add it to :code:`geyser.registry.JOB_MODULES`.
 
 .. code-block:: python
 
