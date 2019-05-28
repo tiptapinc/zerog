@@ -12,6 +12,9 @@ import geyser.job_log as job_log
 import geyser.registry as registry
 import geyser.workers as workers
 
+# import in order to register the example jobs
+import geyser.examples
+
 import logging
 logging.basicConfig(
     level=logging.INFO,

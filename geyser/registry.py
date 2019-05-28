@@ -15,7 +15,6 @@ from geyser.jobs import BaseJob, register_job
 
 
 JOB_MODULES = [
-    "geyser.examples"
 ]
 
 
