@@ -199,7 +199,7 @@ class BaseJob(object):
         message, also makes and records an event.
         """
         if eventMsg:
-            event = make_event(eventMsg, "")
+            event = make_event("", eventMsg)
 
         error = make_error(errorCode, msg)
 

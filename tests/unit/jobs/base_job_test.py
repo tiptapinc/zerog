@@ -21,9 +21,6 @@ from geyser import jobs
 #     of configuring which datastore to use?
 #   - BaseJob.record_change will update the attributes on the base job instance
 #     even if the save to the datastore fails
-#   - test_record_error_with_event_message => BaseJob.record_error with an
-#     eventMsg creates an event with action = eventMsg instead of
-#     msg = eventMsg which is inconsistent with BaseJob.record_event
 #   - added BaseJob._validate_parameters
 #
 # todo (mslaughter):
@@ -85,6 +82,7 @@ class TestBaseJob(object):
         assert base_job.resultCode == -1
         assert base_job.resultString == ""
 
+    @pytest.mark.skip(reason="validation occurs at make_base_job")
     def test_with_invalid_parameter(self):
         params = {
             'schemaVersion': 'test',
@@ -361,7 +359,7 @@ class TestBaseJob(object):
 
         # NOTE: in this case, we use eventMsg as the action, not the msg
         assert len(base_job.events) == 1
-        assert base_job.events[0].action == 'test-event'
+        assert base_job.events[0].msg == 'test-event'
 
     def test_record_result(self, mocker):
         base_job = jobs.BaseJob()
@@ -404,5 +402,5 @@ class TestBaseJob(object):
         assert len(progress_dict['events']) == 1
         assert len(progress_dict['errors']) == 1
 
-        assert progress_dict['events'][0]['action'] == 'test-event'
+        assert progress_dict['events'][0]['msg'] == 'test-event'
         assert progress_dict['errors'][0]['msg'] == 'test-error'
