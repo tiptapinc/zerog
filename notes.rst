@@ -94,3 +94,17 @@ Imports are done by appending `geyser` to every import.
 .. code-block:: python
 
     import geyser.jobs
+
+Various test running configurations:
+
+.. code-block:: shell
+
+    # run all tests
+    # need to be in geyser/ or geyser/tests
+    pytest
+
+    # run all tests in a file
+    pytest path/to/file.py
+
+    # run a specific test in a file
+    pytest path/to/file.py::TestClassName::test_method_name
