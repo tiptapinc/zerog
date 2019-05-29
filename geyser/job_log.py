@@ -120,16 +120,6 @@ def info(msg):
         CURRENT_JOB.record_event(msg)
 
 
-def warning(msg):
-    global CURRENT_JOB
-
-    log.warning(msg)
-    keep_alive()
-
-    if CURRENT_JOB:
-        CURRENT_JOB.record_warning(msg)
-
-
 def error_log_only(msg):
     global CURRENT_JOB
 
