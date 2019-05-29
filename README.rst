@@ -93,9 +93,11 @@ All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attr
 Using Job Log to Track Job
 --------------------------
 
-``job_log.py`` contains a set of helper functions and variables that allow jobs to report on their progress, record information, raise errors, and provide heartbeats to keep long running jobs alive.
+``geyser.job_log`` contains a set of helper functions and variables that allow jobs to report on their progress, record information, raise errors, and provide heartbeats to keep long running jobs alive.
 
 *set_completeness(completeness, enforceMinInterval=False)*
+    Manually set the completeness of a job.
+
     :completeness:
         float
 
@@ -105,9 +107,9 @@ Using Job Log to Track Job
 
         If True, requires updates to be at least 2 seconds apart.
 
-    Manually set the completeness of a job.
-
 *track_completeness(start, end, intervals)*
+    Set up job log to be able to track completeness in set intervals.
+
     :start:
         float
 
@@ -121,42 +123,30 @@ Using Job Log to Track Job
 
         The number of intervals for completeness tracking that will occur between start and end. For example, a job with 5 equal steps might have 5 intervals with a start of 0.0 and an end of 1.0.
 
-    Set up job log to be able to track completeness in set intervals.
-
 *increment_completeness()*
     Use together with ``track_completeness`` to take advantage of automatic completeness calculations. Each call to ``increment_completeness`` will increment the current interval for a job's completeness.
 
     Defaults to :code:`start=0.0`, :code:`end=1.0`, :code:`interval=1`.
 
 *info(msg)*
+    Record a message on a job.
+
     :msg:
         string
 
         Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
 
-    Record a message on a job.
-
 *error_log_only(msg)*
+    Log an error that occurred during execution of the job. This error will stop immediate execution of the job, but will allow the job to be requeued for further retries.
+
     :msg:
         string
 
         Error message to be logged. This message will not be associated with the job datastore entry.
 
-    Log an error that occurred during execution of the job. This error will stop immediate execution of the job, but will allow the job to be requeued for further retries.
-
 *error_continue(errorCode, msg)*
-    :errorCode:
-        int
-
-        Error code for this particular error.
-    :msg:
-        string
-
-        Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
-
     Record an error on a job. This error will stop immediate execution of the job, but will allow the job to be requeued for further retries.
 
-*error_finish(errorCode, msg)*
     :errorCode:
         int
 
@@ -166,7 +156,17 @@ Using Job Log to Track Job
 
         Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
 
+*error_finish(errorCode, msg)*
     Record an error on a job. This error will stop immediate execution of the job, and the job will be removed from the queue.
+
+    :errorCode:
+        int
+
+        Error code for this particular error.
+    :msg:
+        string
+
+        Message to be associated with the job. This message will be saved to the job datastore entry along with a timestamp.
 
 Creating a New Handler
 ----------------------
@@ -243,7 +243,7 @@ Skeleton Code for MyJob
 Skeleton Code for MyJobHandler
 ------------------------------
 
-:code:`handlers/my_handler.py`
+:code:`handlers/my_job_handler.py`
 
 .. code-block:: python
 
@@ -272,16 +272,21 @@ Skeleton Code for MyJobHandler
             self.set_status(200)
             self.finish()
 
-See examples_ folder for examples of the geyser system.
+See examples_ folder for examples of the Geyser system.
 
 
 Glossary
 ========
-* *Job*: a blueprint for performing work. Jobs can be defined and customized by the developer. Workers will pick up jobs from their respective queues and executed, performing the work dictated by the job. Jobs are stored in a database to track their progress, results, and errors.
-* *Job Schema*: the predefined attributes for a job. These are primarily implemented for code readability and job input validation.
-* *Queue*: a beanstalk tube on which jobs for that queue type will be inserted. Workers watch the tubes and pick up jobs as they have capacity.
-* *Worker*: a process that picks up a job from a queue, instantiates the job, and runs it.
-* *Handler*: a Tornado abstraction that is used to create and enqueue jobs based on API calls.
+*Job*
+    A blueprint for performing work. Jobs can be defined and customized by the developer. Workers will pick up jobs from their respective queues and executed, performing the work dictated by the job. Jobs are stored in a database to track their progress, results, and errors.
+*Job Schema*
+    The predefined attributes for a job. These are primarily implemented for code readability and job input validation.
+*Queue*
+    A beanstalk tube on which jobs for that queue type will be inserted. Workers watch the tubes and pick up jobs as they have capacity.
+*Worker*
+    A process that picks up a job from a queue, instantiates the job, and runs it.
+*Handler*
+    A Tornado abstraction that is used to create and enqueue jobs based on API calls.
 
 
 .. _examples: https://github.com/tiptapinc/geyser/tree/master/geyser/examples
