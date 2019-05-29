@@ -99,7 +99,7 @@ class BaseJob(object):
         self.resultString = kwargs.get('resultString', "")
 
         # expensive --> should only instantiate from `make_base_job` anyway
-        self._validate_parameters()
+        # self._validate_parameters()
 
     def dump(self):
         return self.SCHEMA().dump(self).data
@@ -310,7 +310,7 @@ def make_key(docType, uuid):
 
 def make_base_job(values={}, jobType=None):
     """
-
+    Creates an instance of the input job and validates that the parameters are correct.
     """
     jobType = jobType or values.get('jobType')
     typeClasses = get_type_classes(jobType)

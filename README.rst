@@ -261,8 +261,6 @@ Skeleton Code for MyJobHandler
             '''
             params = tornado.escape.json_decode(self.request.body)
 
-            log.info(f'kicking off basic job with args: {params}')
-
             job = make_my_job(values=params)
             job.enqueue()
 
