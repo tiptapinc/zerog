@@ -1,2 +1,2 @@
-from .datastore import Datastore
+from .couchbase_datastore import CouchbaseDatastore
 from couchbase.exceptions import KeyExistsError, TemporaryFailError

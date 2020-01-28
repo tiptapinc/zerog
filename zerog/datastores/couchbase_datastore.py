@@ -1,4 +1,11 @@
-from couchbase.bucket import Bucket
+#!/usr/bin/env python
+# encoding: utf-8
+"""
+Copyright (c) 2020 MotiveMetrics. All rights reserved.
+
+"""
+from couchbase.cluster import Cluster
+from couchbase.cluster import PasswordAuthenticator
 
 # ignore linter! do not delete!
 from couchbase.exceptions import NotFoundError
@@ -7,18 +14,16 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Datastore(object):
+class CouchbaseDatastore(object):
     """
-    This class provides helper functions to interface with the database
-    that stores job information.
-
-    Currently database being used is Couchbase.
+    Simple Couchbase datastore client object
     """
-
-    def __init__(self, host, port, bucket, **kwargs):
-        connectionString = "http://%s:%s/%s" % (host, port, bucket)
+    def __init__(self, host, username, password, bucket, **kwargs):
+        cluster = Cluster('couchbase://%s' % host)
+        authenticator = PasswordAuthenticator(username, password)
+        cluster.authenticate(authenticator)
         kwargs['quiet'] = True
-        self.bucket = Bucket(connectionString, **kwargs)
+        self.bucket = cluster.open_bucket(bucket, **kwargs)
 
     def create(self, key, value, **kwargs):
         ro = self.bucket.insert(key, value, **kwargs)

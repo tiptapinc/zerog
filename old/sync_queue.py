@@ -14,14 +14,10 @@ log = logging.getLogger(__name__)
 BEANSTALK_LOCALHOST_PORT = 11300
 
 
-class SyncQueue(object):
-    def __init__(self):
-        # TODO: probably have to change this?
-        # ports = utils.load_config("/opt/tiptap/configs/ports.yml")
-        host = "localhost"
-        port = BEANSTALK_LOCALHOST_PORT
-        # port = ports['servicePorts']['beanstalkd']
-
+class BeanStalkQueue(object):
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port 
         self.bean = beanstalkc.Connection(host=host, port=port)
 
     def put(self, queueName, data, **kwargs):

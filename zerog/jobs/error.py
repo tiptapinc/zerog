@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-Copyright (c) 2017 MotiveMetrics. All rights reserved.
+Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
 import datetime
@@ -16,27 +16,24 @@ class ErrorSchema(Schema):
     """
     timeStamp = fields.DateTime(format="iso")
     errorCode = fields.Integer(required=True)
-    msg = fields.String()
+    msg = fields.String(required=True)
 
     @post_load
-    def make(self, data):
+    def make(self, data, **kwargs):
         return Error(**data)
 
 
 class Error(object):
     def __init__(self, **kwargs):
         self.timeStamp = kwargs.get('timeStamp', datetime.datetime.utcnow())
-
-        # only create non-null attributes that are in kwargs
-        for attr in ['errorCode', 'msg']:
-            if attr in kwargs and kwargs[attr]:
-                setattr(self, attr, kwargs[attr])
+        self.errorCode = kwargs['errorCode']
+        self.msg = kwargs['msg']
 
     def dump(self):
-        return ErrorSchema().dump(self).data
+        return ErrorSchema().dump(self)
 
 
-def make_error(errorCode, msg=None):
+def make_error(errorCode, msg):
     # action is required
-    values = dict(errorCode=errorCode, msg=msg)
-    return ErrorSchema(strict=True).load(values).data
+    data = dict(errorCode=errorCode, msg=msg)
+    return ErrorSchema().load(data)

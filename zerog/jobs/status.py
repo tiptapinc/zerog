@@ -6,8 +6,8 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 """
 from marshmallow import Schema, fields, post_load
 
-from geyser.geyser_queue import queue_globals
-from geyser.utils import DictField
+from zerog.geyser_queue import queue_globals
+from zerog.utils import DictField
 
 from .error import ErrorSchema
 from .event import EventSchema
@@ -32,7 +32,7 @@ class StatusSchema(Schema):
     )
 
     @post_load
-    def make(self, data):
+    def make(self, data, **kwargs):
         return Status(**data)
 
 
@@ -44,5 +44,5 @@ class Status(object):
         self.events = kwargs.get('events', {})
 
 
-def make_status(values):
-    return StatusSchema().load(values).data
+def make_status(data):
+    return StatusSchema().load(data)

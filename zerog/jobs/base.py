@@ -10,20 +10,19 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 #   - make it possible to kill a job??
 #
 
+from abc import ABC, abstractmethod
 import datetime
 import random
 import time
+import uuid
 
 from marshmallow import Schema, fields
 
-import geyser.datastore_configs as datastore_configs
-import geyser.utils as utils
-
-from geyser.datastore import KeyExistsError, TemporaryFailError
-from geyser.geyser_queue import queue_globals, sync_queue
+import zerog.datastores
 
 from .error import ErrorSchema, make_error
 from .event import EventSchema, make_event
+from .warning import WarningSchema, make_warning
 
 import logging
 log = logging.getLogger(__name__)
@@ -33,6 +32,22 @@ DEFAULT_TTR = 3600 * 24   # long because broken workers are killed
 
 JOB_DOCUMENT_TYPE = "geyser_job"
 BASE_JOB_TYPE = "geyser_base"
+
+# result codes
+INTERNAL_ERROR = 500
+NO_RESULT = -1
+
+
+class ErrorContinue(Exception):
+    pass
+
+
+class ErrorFinish(Exception):
+    pass
+
+
+class WarningFinish(Exception):
+    pass
 
 
 class BaseJobSchema(Schema):
@@ -57,13 +72,13 @@ class BaseJobSchema(Schema):
 
     events = fields.List(fields.Nested(EventSchema))
     errors = fields.List(fields.Nested(ErrorSchema))
+    warnings = fields.List(fields.Nested(WarningSchema))
 
     completeness = fields.Float()
     resultCode = fields.Integer()
-    resultString = fields.String()
 
 
-class BaseJob(object):
+class BaseJob(ABC):
     DOCUMENT_TYPE = JOB_DOCUMENT_TYPE   # very important for key value ds
     JOB_TYPE = BASE_JOB_TYPE
     LIFESPAN = DEFAULT_JOB_LIFESPAN
@@ -71,7 +86,11 @@ class BaseJob(object):
     SCHEMA = BaseJobSchema
     QUEUE_NAME = ""
 
-    def __init__(self, **kwargs):
+    def __init__(self, datastore, queue, keepalive=None, **kwargs):
+        self.datastore = datastore
+        self.queue = queue
+        self.keepalive = keepalive
+
         now = datetime.datetime.utcnow()
 
         self.documentType = kwargs.get('documentType', self.DOCUMENT_TYPE)
@@ -82,7 +101,7 @@ class BaseJob(object):
         self.updatedAt = kwargs.get('updatedAt', now)
         self.cas = kwargs.get('cas', 0)
 
-        self.uuid = (kwargs.get('uuid') or utils.uuid_me())
+        self.uuid = kwargs.get('uuid') or str(uuid.uuid4())
         self.logId = kwargs.get(
             'logId',
             "%s_%s" % (self.JOB_TYPE, self.uuid)
@@ -93,25 +112,24 @@ class BaseJob(object):
 
         self.events = kwargs.get('events', [])
         self.errors = kwargs.get('errors', [])
+        self.warnings = kwargs.get('warnings', [])
 
         self.completeness = kwargs.get('completeness', 0)
-        self.resultCode = kwargs.get('resultCode', queue_globals.NO_RESULT)
-        self.resultString = kwargs.get('resultString', "")
+        self.resultCode = kwargs.get('resultCode', NO_RESULT)
 
-        # expensive --> should only instantiate from `make_base_job` anyway
-        # self._validate_parameters()
+        self.tickcount = 0
 
     def dump(self):
-        return self.SCHEMA().dump(self).data
+        return self.SCHEMA().dump(self)
 
     def dumps(self, **kwargs):
-        return self.SCHEMA().dumps(self, **kwargs).data
+        return self.SCHEMA().dumps(self, **kwargs)
 
     def __str__(self):
         return self.dumps(indent=4)
 
     def key(self):
-        return make_key(self.DOCUMENT_TYPE, self.uuid)
+        return make_key(self.uuid)
 
     def save(self):
         """
@@ -119,7 +137,7 @@ class BaseJob(object):
         Couchbase for the datastore.
         """
         self.updatedAt = datetime.datetime.utcnow()
-        _, self.cas = datastore_configs.DATASTORE.set_with_cas(
+        _, self.cas = self.datastore.set_with_cas(
             self.key(),
             self.dump(),
             cas=self.cas,
@@ -133,17 +151,17 @@ class BaseJob(object):
         This may be necessary if another python instance has updated this job
         in the datastore and the cas loaded here is out of date.
         """
-        values, cas = datastore_configs.DATASTORE.read_with_cas(self.key())
-        if values:
-            values['cas'] = cas
-            loaded = self.SCHEMA(strict=True).load(values).data
+        data, cas = self.datastore.read_with_cas(self.key())
+        if data:
+            data['cas'] = cas
+            loaded = self.SCHEMA().load(data)
             self.__init__(**loaded)
 
     def lock(self, ttl=1):
-        _, self.cas = datastore_configs.DATASTORE.lock(self.key(), ttl=ttl)
+        _, self.cas = self.datastore.lock(self.key(), ttl=ttl)
 
     def unlock(self):
-        datastore_configs.DATASTORE.unlock(self.key(), self.cas)
+        self.datastore.unlock(self.key(), self.cas)
 
     def record_change(self, func, *args, **kwargs):
         """
@@ -160,10 +178,10 @@ class BaseJob(object):
                 self.save()
                 return True
 
-            except KeyExistsError:
+            except zerog.datastore.KeyExistsError:
                 log.info("%s: datastore collision - reloading." % self.logId)
 
-            except TemporaryFailError:
+            except zerog.datastore.TemporaryFailError:
                 log.info("%s: locked - reloading." % self.logId)
 
             time.sleep(random.random() / 10)
@@ -182,31 +200,35 @@ class BaseJob(object):
 
         self.record_change(do_update_attrs)
 
-    def record_event(self, msg, action=""):
+    def record_event(self, msg):
         """
         Makes and records an event associated with this job.
         """
-        event = make_event(action, msg)
+        event = make_event(msg)
 
         def do_record_event():
             self.events.append(event)
 
         self.record_change(do_record_event)
 
-    def record_error(self, errorCode, msg, eventMsg=None):
+    def record_warning(self, msg):
         """
-        Makes and records an error associated with this job. If there is a
-        message, also makes and records an event.
+        Makes and records a warning associated with this job.
         """
-        if eventMsg:
-            event = make_event("", eventMsg)
+        warning = make_warning(msg)
 
+        def do_record_warning():
+            self.warnings.append(warning)
+
+        self.record_change(do_record_warning)
+
+    def record_error(self, errorCode, msg):
+        """
+        Makes and records an error associated with this job.
+        """
         error = make_error(errorCode, msg)
 
         def do_record_error():
-            if eventMsg:
-                self.events.append(event)
-
             self.errors.append(error)
 
         self.record_change(do_record_error)
@@ -221,16 +243,75 @@ class BaseJob(object):
             completeness=1
         )
 
-    def progress(self):
+    def keep_alive(self):
+        if self.keepalive and callable(self.keepalive):
+            self.keepalive()
+
+    def job_log_info(self, msg):
+        log.info(msg)
+        self.record_event(msg)
+
+    def job_log_warning(self, msg):
+        log.warning(msg)
+        self.record_warning(msg)
+
+    def job_log_error(self, errorCode, msg):
+        log.error(msg)
+        self.record_error(errorCode, msg)
+
+    def raise_warning_finish(self, resultCode, msg):
+        self.job_log_warning(msg)
+        self.record_result(resultCode)
+        raise WarningFinish
+
+    def raise_error_continue(self, errorCode, msg):
+        self.job_log_error(errorCode, msg)
+        raise ErrorContinue
+
+    def raise_error_finish(self, errorCode, msg):
+        self.job_log_error(errorCode, msg)
+        self.record_result(errorCode)
+        raise ErrorFinish
+
+    def set_completeness(self, completeness):
         """
-        Returns a job's completeness, result, events, and errors.
+        Sets the absolute value of the job's completeness. Clamps
+        value to a range of 0.0 to 1.0
         """
-        return dict(
-            completeness=self.completeness,
-            result=self.resultCode,
-            events=[e.dump() for e in self.events],
-            errors=[e.dump() for e in self.errors]
-        )
+        self.keep_alive()
+        setval = clamp(completeness, 0.0, 1.0)
+
+        if completeness < 0 or completeness > 1:
+            log.warning(
+                "completeness %d out of range. Clamping to %d" %
+                (completeness, setval)
+            )
+
+        self.update_attrs(completeness=setval)
+
+    def add_to_completeness(self, delta):
+        """
+        Increment the job's completeness. Adds any unrecorded ticks.
+        Resulting completeness will be clamped to a range of 0.0 to 1.0.
+        """
+        self.set_completeness(self.completeness + delta + self.tickcount)
+
+    def set_tick_value(self, tickval):
+        """
+        Sets the amount the job's completeness will be incremented
+        by a call to the tick method
+        """
+        self.tickval = tickval
+
+    def tick(self):
+        """
+        Accumulates the job's tickcount. Adds tickcount to completeness
+        when it is >= 0.01
+        """
+        self.tickcount += self.tickval
+
+        if self.tickcount >= 0.01:
+            self.add_to_completeness(0)
 
     def enqueue(self, **kwargs):
         """
@@ -245,113 +326,51 @@ class BaseJob(object):
         # thought: does this ever enqueue the job but then fail on the update?
         # what happens then?
         kwargs['ttr'] = kwargs.get('ttr', DEFAULT_TTR)
-        queueJobId = sync_queue.QUEUE.put(
-            self.QUEUE_NAME, self.uuid, **kwargs
-        )
+        queueJobId = self.queue.put(self.uuid, **kwargs)
 
         self.update_attrs(queueKwargs=kwargs, queueJobId=queueJobId)
 
-    def requeue_if_lost(self):
-        # put job back in queue if it's supposed to be there
-        # but isn't
-        lost = (
-            self.queueJobId and
-            self.completeness < 1 and
-            sync_queue.QUEUE.peek(self.queueJobId) is None
+    def progress(self):
+        """
+        Returns a job's completeness, result, events, and errors.
+
+        Override this method to add additional return values. Use super
+        to call this method and get the base return values.
+        """
+        return dict(
+            completeness=self.completeness,
+            result=self.resultCode,
+            events=[e.dump() for e in self.events],
+            errors=[e.dump() for e in self.errors],
+            warnings=[w.dump() for w in self.warnings]
         )
-        if lost:
-            self.enqueue(**self.queueKwargs)
 
-    def _validate_parameters(self):
-        parameters = {
-            'documentType': self.documentType,
-            'jobType': self.jobType,
-            'schemaVersion': self.schemaVersion,
-
-            'createdAt': self.dump()['createdAt'],
-            'updatedAt': self.dump()['updatedAt'],
-            'cas': self.cas,
-
-            'uuid': self.uuid,
-            'logId': self.logId,
-
-            'queueKwargs': self.queueKwargs,
-            'queueJobId': self.queueJobId,
-
-            'events': self.events,
-            'errors': self.errors,
-            'completeness': self.completeness,
-            'resultCode': self.resultCode,
-            'resultString': self.resultString,
-        }
-        self.SCHEMA(strict=True).load(parameters)
-
+    @abstractmethod
     def run(self):
         # override this method to execute the job. It is called by
         # the base worker once the job has been successfully loaded
         #
-        # this method must return a tuple consisting of:
+        # Must return:
         #
-        #   - the time (in epoch seconds) at which to resume
-        #     consuming from the queue
-        #
-        #   - a boolean indicating whether the job should be
-        #     re-queued for further processing
+        #   resultCode: resultCode for the job. Return -1 if job needs
+        #               to be requeued for further processing. Otherwise
+        #               use HTTP resultCodes (200s for success, etc.)
         #
         pass
 
 
-def make_key(docType, uuid):
+def make_key(uuid):
     """
-    Makes a key based on docType and uuid to store job in the datastore.
+    Makes a unique datastore key for a job.
+
+    Args:
+        uuid: uuid of the job
+
+    Returns:
+        datastore key
     """
-    return "%s_%s" % (docType, uuid)
+    return "%s_%s" % (BaseJob.DOCUMENT_TYPE, uuid)
 
 
-def make_base_job(values={}, jobType=None):
-    """
-    Creates an instance of the input job and validates that the parameters are correct.
-    """
-    jobType = jobType or values.get('jobType')
-    typeClasses = get_type_classes(jobType)
-
-    if typeClasses:
-        loaded = typeClasses['schema'](strict=True).load(values).data
-        return typeClasses['model'](**loaded)
-    else:
-        return None
-
-
-def get_base_job(uuid):
-    """
-    Loads an instance of a job based on the job information stored in the
-    datastore with key based on uuid.
-    """
-    values, cas = datastore_configs.DATASTORE.read_with_cas(
-        make_key(JOB_DOCUMENT_TYPE, uuid)
-    )
-    if values:
-        values['cas'] = cas
-        return make_base_job(values)
-
-    else:
-        return None
-
-
-def get_type_classes(jobType):
-    typeClasses = TYPE_CLASS_DICT.get(jobType)
-
-    if typeClasses is None:
-        log.error(
-            "could not get typeClass for %s. Known typeClasses: %s" %
-            (jobType, TYPE_CLASS_DICT.keys())
-        )
-
-    return typeClasses
-
-
-def register_job(model):
-    TYPE_CLASS_DICT[model.JOB_TYPE] = dict(schema=model.SCHEMA, model=model)
-
-
-TYPE_CLASS_DICT = {}
+def clamp(value, minval, maxval):
+    return (max(min(maxval, value), minval))
