@@ -18,8 +18,6 @@ import uuid
 
 from marshmallow import Schema, fields
 
-import zerog.datastores
-
 from .error import ErrorSchema, make_error
 from .event import EventSchema, make_event
 from .warning import WarningSchema, make_warning
@@ -27,11 +25,7 @@ from .warning import WarningSchema, make_warning
 import logging
 log = logging.getLogger(__name__)
 
-DEFAULT_JOB_LIFESPAN = 0
 DEFAULT_TTR = 3600 * 24   # long because broken workers are killed
-
-JOB_DOCUMENT_TYPE = "geyser_job"
-BASE_JOB_TYPE = "geyser_base"
 
 # result codes
 INTERNAL_ERROR = 500
@@ -75,16 +69,26 @@ class BaseJobSchema(Schema):
     warnings = fields.List(fields.Nested(WarningSchema))
 
     completeness = fields.Float()
+    tickcount = fields.Float()
+    tickval = fields.Float()
     resultCode = fields.Integer()
 
 
 class BaseJob(ABC):
-    DOCUMENT_TYPE = JOB_DOCUMENT_TYPE   # very important for key value ds
-    JOB_TYPE = BASE_JOB_TYPE
-    LIFESPAN = DEFAULT_JOB_LIFESPAN
-    SCHEMA_VERSION = 1.0
-    SCHEMA = BaseJobSchema
-    QUEUE_NAME = ""
+    DOCUMENT_TYPE = "zerog_job"   # used to make datastore key
+    SCHEMA_VERSION = "1.0"
+
+    @property
+    @classmethod
+    @abstractmethod
+    def JOB_TYPE():
+        return "zerog_base_job"
+
+    @property
+    @classmethod
+    @abstractmethod
+    def SCHEMA():
+        return BaseJobSchema
 
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
         self.datastore = datastore
@@ -115,9 +119,9 @@ class BaseJob(ABC):
         self.warnings = kwargs.get('warnings', [])
 
         self.completeness = kwargs.get('completeness', 0)
+        self.tickcount = kwargs.get('tickcount', 0.0)
+        self.tickval = kwargs.get('tickval', 0.001)
         self.resultCode = kwargs.get('resultCode', NO_RESULT)
-
-        self.tickcount = 0
 
     def dump(self):
         return self.SCHEMA().dump(self)
@@ -140,8 +144,7 @@ class BaseJob(ABC):
         _, self.cas = self.datastore.set_with_cas(
             self.key(),
             self.dump(),
-            cas=self.cas,
-            ttl=self.LIFESPAN
+            cas=self.cas
         )
 
     def reload(self):
@@ -155,13 +158,7 @@ class BaseJob(ABC):
         if data:
             data['cas'] = cas
             loaded = self.SCHEMA().load(data)
-            self.__init__(**loaded)
-
-    def lock(self, ttl=1):
-        _, self.cas = self.datastore.lock(self.key(), ttl=ttl)
-
-    def unlock(self):
-        self.datastore.unlock(self.key(), self.cas)
+            self.__init__(self.datastore, self.queue, **loaded)
 
     def record_change(self, func, *args, **kwargs):
         """
@@ -178,10 +175,10 @@ class BaseJob(ABC):
                 self.save()
                 return True
 
-            except zerog.datastore.KeyExistsError:
+            except self.datastore.casException:
                 log.info("%s: datastore collision - reloading." % self.logId)
 
-            except zerog.datastore.TemporaryFailError:
+            except self.datastore.lockedException:
                 log.info("%s: locked - reloading." % self.logId)
 
             time.sleep(random.random() / 10)
@@ -233,13 +230,12 @@ class BaseJob(ABC):
 
         self.record_change(do_record_error)
 
-    def record_result(self, resultCode, resultString=""):
+    def record_result(self, resultCode):
         """
         Record the result of a job.
         """
         self.update_attrs(
             resultCode=resultCode,
-            resultString=resultString,
             completeness=1
         )
 
@@ -287,7 +283,7 @@ class BaseJob(ABC):
                 (completeness, setval)
             )
 
-        self.update_attrs(completeness=setval)
+        self.update_attrs(completeness=setval, tickcount=self.tickcount)
 
     def add_to_completeness(self, delta):
         """
@@ -301,7 +297,7 @@ class BaseJob(ABC):
         Sets the amount the job's completeness will be incremented
         by a call to the tick method
         """
-        self.tickval = tickval
+        self.update_attrs(tickval=tickval)
 
     def tick(self):
         """
@@ -312,6 +308,7 @@ class BaseJob(ABC):
 
         if self.tickcount >= 0.01:
             self.add_to_completeness(0)
+            self.tickcount = 0
 
     def enqueue(self, **kwargs):
         """
@@ -352,9 +349,9 @@ class BaseJob(ABC):
         #
         # Must return:
         #
-        #   resultCode: resultCode for the job. Return -1 if job needs
-        #               to be requeued for further processing. Otherwise
-        #               use HTTP resultCodes (200s for success, etc.)
+        #   resultCode: resultCode for the job. Return NO_RESULT if job needs
+        #               to be requeued for further processing. Otherwise use
+        #               HTTP resultCodes (200s for success, etc.)
         #
         pass
 

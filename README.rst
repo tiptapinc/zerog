@@ -1,23 +1,23 @@
 ******
-Geyser
+ZeroG -- Under Construction !!
 ******
 
-Geyser is a queueing system specifically designed to accomodate long running jobs in a maintainable fashion.
+ZeroG is a queueing system specifically designed to accomodate long running jobs in a maintainable fashion.
 
-Geyser runs using tornado to handle API requests and beanstalkd to handle queueing.
+ZeroG runs using tornado to handle API requests and beanstalkd to handle queueing.
 
 .. contents:: Table of Contents
 
 Overview
 ========
 
-Geyser is a queueing system that allows developers to abstract out the complicated and common problem of running background jobs in a maintainable fashion. The basis of Geyser is that jobs should be reliable, take an arbitrary amount of time, and have the ability to report on their progress.
+ZeroG is a queueing system that allows developers to abstract out the complicated and common problem of running background jobs in a maintainable fashion. The basis of ZeroG is that jobs should be reliable, take an arbitrary amount of time, and have the ability to report on their progress.
 
-The flow of information in Geyser is shown at a high level in the following diagram::
+The flow of information in ZeroG is shown at a high level in the following diagram::
 
     _____________________                  ____________                        _______________
     ||     ||          ||                  ||        ||                        ||           ||
-    || App || Handlers || <-- request      || geyser || --> save job data -->  || datastore ||
+    || App || Handlers || <-- request      || zeroG || --> save job data -->  || datastore ||
     ||     ||          || --> make_job --> ||        || <-- fetch job data <-- ||           ||
     ---------------------                  ------------                        ---------------
                                                 |                                    /
@@ -40,16 +40,16 @@ The flow of information in Geyser is shown at a high level in the following diag
 A developer creates an application with an API layer with endpoints corresponding to jobs. A :code:`POST` request to one of thse endpoints will kick off the job queueing process. The job corresponding with that endpoint will be created, saved to the datastore, and its uuid added to the corresponding beanstalk tube ("queue"). Workers watching these queues will pick up jobs as they come in. The workers will pull the correct job information from the datastore by job uuid, instantiate the job by its job type, and then run the job. Any updates that occur during the execution of the job, such as progress updates, will be intermittenly saved to the datastore, and so the job data can be pulled at anytime by a watcher to keep track of the progress of the job.
 
 
-Using Geyser
+Using ZeroG
 ============
 
 Creating a New Job
 ------------------
 
-All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attributes required for geyser to identify, save, run, and report on a job. BaseJob includes the methods for saving jobs to the datastore (currently Couchbase), loading jobs from the datastore, instantiating jobs based on the data from the datastore, enqueuing jobs on their respective queues, and updating job attributes.
+All zeroG jobs must inherit from BaseJob. BaseJob includes all of the base attributes required for zeroG to identify, save, run, and report on a job. BaseJob includes the methods for saving jobs to the datastore (currently Couchbase), loading jobs from the datastore, instantiating jobs based on the data from the datastore, enqueuing jobs on their respective queues, and updating job attributes.
 
 *MyJob*
-    MyJob inherits from :code:`geyser.BaseJob` to have all of the required base functionality and attributes. The developer can add additional attributes in :code:`__init__` as required for a job's function as well as the job type and queue name for the specific job. The inheriting class must overwrite the :code:`run` method.
+    MyJob inherits from :code:`zeroG.BaseJob` to have all of the required base functionality and attributes. The developer can add additional attributes in :code:`__init__` as required for a job's function as well as the job type and queue name for the specific job. The inheriting class must overwrite the :code:`run` method.
 
     .. code-block:: python
 
@@ -66,11 +66,11 @@ All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attr
             """
             return time.time(), False
 
-    Geyser has a few special error types that can be raised in the :code:`run` method.
+    ZeroG has a few special error types that can be raised in the :code:`run` method.
 
-    *geyser.WFErrorFinish*
+    *zeroG.WFErrorFinish*
         job execution is terminated, and job is not requeued
-    *geyser.WFErrorContinue*
+    *zeroG.WFErrorContinue*
         job execution is terminated, but the job is requeued within its retry limit for re-execution
 *MyJobSchema*
     MyJobSchema explicitly declares and provides validation for the inputs to MyJob. In order to use the schema validation provided by the marshmallow package, jobs must be instantiated via the :code:`make_base_job` method.
@@ -79,21 +79,21 @@ All geyser jobs must inherit from BaseJob. BaseJob includes all of the base attr
 
         # Use this creator function to create a job where the schema gets validated
         def make_my_job(values={}):
-            return geyser.jobs.make_base_job(values, MY_JOB_TYPE)
+            return zeroG.jobs.make_base_job(values, MY_JOB_TYPE)
 *Registry*
-    Registry is the current mechanism by which Geyser keeps track of jobs and queues. In order to add a job to the registry, add it to :code:`geyser.registry.JOB_MODULES`.
+    Registry is the current mechanism by which ZeroG keeps track of jobs and queues. In order to add a job to the registry, add it to :code:`zeroG.registry.JOB_MODULES`.
 
     .. code-block:: python
 
-        geyser.registry.JOB_MODULES = geyser.registry.JOB_MODULES + [
-            "geyser.examples"
+        zeroG.registry.JOB_MODULES = zeroG.registry.JOB_MODULES + [
+            "zeroG.examples"
         ]
 
 
 Using Job Log to Track Job
 --------------------------
 
-``geyser.job_log`` contains a set of helper functions and variables that allow jobs to report on their progress, record information, raise errors, and provide heartbeats to keep long running jobs alive.
+``zeroG.job_log`` contains a set of helper functions and variables that allow jobs to report on their progress, record information, raise errors, and provide heartbeats to keep long running jobs alive.
 
 *set_completeness(completeness, enforceMinInterval=False)*
     Manually set the completeness of a job.
@@ -171,7 +171,7 @@ Using Job Log to Track Job
 Creating a New Handler
 ----------------------
 
-Endpoint handlers are the main way of creating and enqueueing Geyser jobs. A handler that only enqueues jobs can be implemented very simply. The key point is that the handler needs to create the correct job with the correct parameters.
+Endpoint handlers are the main way of creating and enqueueing ZeroG jobs. A handler that only enqueues jobs can be implemented very simply. The key point is that the handler needs to create the correct job with the correct parameters.
 
 .. code-block:: python
 
@@ -195,19 +195,19 @@ Skeleton Code for MyJob
 
     import time
 
-    import geyser.jobs
-    import geyser.registry.JOB_MODULES
+    import zeroG.jobs
+    import zeroG.registry.JOB_MODULES
 
     from marshmallow import fields
 
     MY_JOB_TYPE = "my_job_type"
 
 
-    class MyJobSchema(geyser.jobs.BaseJobSchema):
+    class MyJobSchema(zeroG.jobs.BaseJobSchema):
         fieldOne = fields.String()
 
 
-    class MyJob(geyser.jobs.BaseJob):
+    class MyJob(zeroG.jobs.BaseJob):
         JOB_TYPE = MY_JOB_TYPE
         SCHEMA = MyJobSchema
         QUEUE_NAME = 'my_job'
@@ -233,9 +233,9 @@ Skeleton Code for MyJob
 
     # Use this creator function to create a job where the schema gets validated
     def make_my_job(values={}):
-        return geyser.jobs.make_base_job(values, MY_JOB_TYPE)
+        return zeroG.jobs.make_base_job(values, MY_JOB_TYPE)
 
-    geyser.registry.JOB_MODULES = geyser.registry.JOB_MODULES + [
+    zeroG.registry.JOB_MODULES = zeroG.registry.JOB_MODULES + [
         "jobs.my_job"
     ]
 
@@ -270,7 +270,7 @@ Skeleton Code for MyJobHandler
             self.set_status(200)
             self.finish()
 
-See examples_ folder for examples of the Geyser system.
+See examples_ folder for examples of the ZeroG system.
 
 
 Glossary
@@ -287,4 +287,4 @@ Glossary
     A Tornado abstraction that is used to create and enqueue jobs based on API calls.
 
 
-.. _examples: https://github.com/tiptapinc/geyser/tree/master/geyser/examples
+.. _examples: https://github.com/tiptapinc/zeroG/tree/master/zeroG/examples

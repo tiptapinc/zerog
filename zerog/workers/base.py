@@ -6,7 +6,6 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 """
 import json
 import os
-import time
 import traceback
 
 import zerog.jobs
@@ -140,24 +139,21 @@ class BaseWorker(object):
                 return
 
             # run the job by calling its run method
-            resultCode, requeue = job.run()
-            log.debug(
-                "job %s completed. resultCode: %s, requeue: %s" %
-                (uuid, resultCode, requeue)
-            )
-
-            # if resultCode is None, assume that job returned normally and
-            # translate to a 200
-            resultCode = resultCode or 200
-            job.record_result(resultCode)
+            resultCode = job.run()
+            log.debug("job %s completed. resultCode: %s" % (uuid, resultCode))
 
             # delete the queueJob now that the actual job has completed
             queueJob.delete()
 
+            # if resultCode is None, assume that job returned normally and
+            # translate to a 200
+            resultCode = resultCode or 200
+
             # if the job asked to be requeued, requeue it with a delay
-            if requeue:
-                delay = max(0, requeue - time.time())
-                job.enqueue(delay=delay)
+            if resultCode == zerog.jobs.NO_RESULT:
+                job.enqueue(delay=10)
+            else:
+                job.record_result(resultCode)
 
             return
 

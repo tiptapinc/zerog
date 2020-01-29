@@ -26,14 +26,6 @@ class BeanstalkdQueue(object):
     def reserve(self, **kwargs):
         return self.do_bean("reserve", **kwargs)
 
-    def peek(self, jobId):
-        queueJob = self.do_bean("peek", jobId)
-
-        if queueJob:
-            return queueJob.body
-        else:
-            return None
-
     def do_bean(self, method, *args, **kwargs):
         for _ in range(3):
             try:

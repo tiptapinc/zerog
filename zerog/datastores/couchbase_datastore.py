@@ -4,11 +4,8 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
-from couchbase.cluster import Cluster
-from couchbase.cluster import PasswordAuthenticator
-
-# ignore linter! do not delete!
-from couchbase.exceptions import NotFoundError
+from couchbase.cluster import Cluster, PasswordAuthenticator
+from couchbase.exceptions import KeyExistsError, TemporaryFailError
 
 import logging
 log = logging.getLogger(__name__)
@@ -18,6 +15,9 @@ class CouchbaseDatastore(object):
     """
     Simple Couchbase datastore client object
     """
+    casException = KeyExistsError
+    lockedException = TemporaryFailError
+
     def __init__(self, host, username, password, bucket, **kwargs):
         cluster = Cluster('couchbase://%s' % host)
         authenticator = PasswordAuthenticator(username, password)

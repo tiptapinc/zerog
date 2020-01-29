@@ -12,7 +12,7 @@ log.setLevel(logging.DEBUG)
 
 
 class JobRegistry(object):
-    def __init__(self, datastore, queue):
+    def __init__(self, datastore, queue, keepalive=None):
         """
         Maintain a registry of job classes which maps job type to job class.
 
@@ -27,6 +27,7 @@ class JobRegistry(object):
         """
         self.datastore = datastore
         self.queue = queue
+        self.keepalive = keepalive
 
         self.registry = {}
 
@@ -44,21 +45,29 @@ class JobRegistry(object):
             List of (jobClass, added, error) tuples, where added indicates if
             the class was successfully added, and error is the reason if not.
         """
-        added = []
+        added = {}
 
         for jobClass in jobClasses:
             if not issubclass(jobClass, BaseJob):
-                added.append((jobClass, False, "NotSubclass"))
+                added[jobClass.__name__] = dict(
+                    success=False, error="NotSubclass"
+                )
 
-            elif not hasattr(jobClass, "JOB_TYPE"):
-                added.append((jobClass, False, "NoJobType"))
+            elif jobClass.JOB_TYPE == BaseJob.JOB_TYPE:
+                added[jobClass.__name__] = dict(
+                    success=False, error="NoJobType"
+                )
 
-            elif not hasattr(jobClass, "SCHEMA"):
-                added.append((jobClass, False, "NoSchema"))
+            elif jobClass.SCHEMA == BaseJob.SCHEMA:
+                added[jobClass.__name__] = dict(
+                    success=False, error="NoSchema"
+                )
 
             else:
                 self.registry[jobClass.JOB_TYPE] = jobClass
-                added.append((jobClass, True, None))
+                added[jobClass.__name__] = dict(
+                    success=True, error=None
+                )
 
         return added
 
@@ -84,7 +93,9 @@ class JobRegistry(object):
 
         if jobClass:
             loaded = jobClass.SCHEMA().load(data)
-            job = jobClass(self.datastore, self.queue, **loaded)
+            job = jobClass(
+                self.datastore, self.queue, self.keepalive, **loaded
+            )
             return job
 
         else:
