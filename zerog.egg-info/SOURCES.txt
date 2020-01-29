@@ -3,12 +3,6 @@ MANIFEST.in
 README.rst
 VERSION
 setup.py
-tests/unit/__init__.py
-tests/unit/conftest.py
-tests/unit/jobs/__init__.py
-tests/unit/jobs/base_job_test.py
-tests/unit/workers/__init__.py
-tests/unit/workers/base_worker_test.py
 zerog/__init__.py
 zerog/server.py
 zerog.egg-info/PKG-INFO
@@ -31,5 +25,14 @@ zerog/queues/beanstalk_queue.py
 zerog/registry/__init__.py
 zerog/registry/registry.py
 zerog/registry/tools.py
+zerog/tests/__init__.py
+zerog/tests/conftest.py
+zerog/tests/job_classes.py
+zerog/tests/jobs_test.py
+zerog/tests/mock_datastore.py
+zerog/tests/mock_queue.py
+zerog/tests/registry_test.py
+zerog/tests/server_test.py
+zerog/tests/worker_test.py
 zerog/workers/__init__.py
 zerog/workers/base.py

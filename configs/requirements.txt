@@ -1,4 +1,3 @@
-nose==1.2.0
-coverage==3.5.2
-unittest2==0.5.1
-yaml
+"mock"
+"pytest"
+"pytest-cov"
