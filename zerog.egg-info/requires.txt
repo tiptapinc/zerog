@@ -1,2 +1,0 @@
-tornado>=4.5
-marshmallow>=3.0.5
