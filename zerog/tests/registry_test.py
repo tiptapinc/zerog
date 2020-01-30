@@ -3,7 +3,7 @@ import pytest
 
 from ..registry import JobRegistry, find_subclasses, import_submodules
 
-from .job_classes import GoodJob, NoRunJob, NoJobTypeJob, NoSchemaJob
+from .job_classes import GoodJob, RequeueJob
 from .mock_datastore import MockDatastore
 from .mock_queue import MockQueue
 
@@ -25,16 +25,16 @@ def test_add_classes(good_job_registry):
 
 def test_add_another_class(good_job_registry):
     registry = good_job_registry
-    added = registry.add_classes([NoRunJob])
+    added = registry.add_classes([RequeueJob])
     classes = registry.get_registered_classes()
 
     assert len(added) == 1
-    assert NoRunJob.__name__ in added
+    assert RequeueJob.__name__ in added
     assert GoodJob.__name__ not in added
 
     assert len(classes) == 2
     assert GoodJob in classes
-    assert NoRunJob in classes
+    assert RequeueJob in classes
 
 
 def test_add_not_subclass(good_job_registry):
@@ -47,35 +47,13 @@ def test_add_not_subclass(good_job_registry):
     assert added['int']['error'] == "NotSubclass"
 
 
-def test_add_no_job_type_class(good_job_registry):
-    registry = good_job_registry
-    added = registry.add_classes([NoJobTypeJob])
-    name = NoJobTypeJob.__name__
-
-    assert len(added) == 1
-    assert name in added
-    assert added[name]['success'] is False
-    assert added[name]['error'] == "NoJobType"
-
-
-def test_add_no_schema_class(good_job_registry):
-    registry = good_job_registry
-    added = registry.add_classes([NoSchemaJob])
-    name = NoSchemaJob.__name__
-
-    assert len(added) == 1
-    assert name in added
-    assert added[name]['success'] is False
-    assert added[name]['error'] == "NoSchema"
-
-
 def test_add_good_and_bad_classes():
     registry = JobRegistry(MockDatastore(), MockQueue())
     added = registry.add_classes(
-        [GoodJob, int, NoJobTypeJob, NoSchemaJob]
+        [GoodJob, int]
     )
 
-    assert len(added) == 4
+    assert len(added) == 2
 
     name = GoodJob.__name__
     assert name in added
@@ -83,9 +61,7 @@ def test_add_good_and_bad_classes():
     assert added[name]['error'] is None
 
     expected = [
-        (int, "NotSubclass"),
-        (NoJobTypeJob, "NoJobType"),
-        (NoSchemaJob, "NoSchema")
+        (int, "NotSubclass")
     ]
     for jobClass, error in expected:
         name = jobClass.__name__

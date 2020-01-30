@@ -25,20 +25,6 @@ class NoRunJob(BaseJob):
     SCHEMA = BaseJobSchema
 
 
-class NoJobTypeJob(BaseJob):
-    SCHEMA = BaseJobSchema
-
-    def run(self):
-        return 200
-
-
-class NoSchemaJob(BaseJob):
-    JOB_TYPE = "no_schema_test_job"
-
-    def run(self):
-        return 200
-
-
 class ExceptionJob(BaseJob):
     JOB_TYPE = "exception_test_job"
     SCHEMA = BaseJobSchema

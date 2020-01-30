@@ -1,11 +1,12 @@
 import datetime
+import importlib
 import pdb
 import pytest
 
 from ..jobs import INTERNAL_ERROR, NO_RESULT
 from ..jobs.base import ErrorContinue, ErrorFinish, WarningFinish
 
-from .job_classes import GoodJob, NoRunJob, NoJobTypeJob, NoSchemaJob
+from .job_classes import GoodJob, NoRunJob
 from .mock_datastore import MockDatastore
 from .mock_queue import MockQueue
 
@@ -24,13 +25,13 @@ def test_no_run_job_is_bad():
 
 
 def test_no_job_type_job_is_bad():
-    with pytest.raises(TypeError):
-        NoJobTypeJob(MockDatastore(), MockQueue())
+    with pytest.raises(NotImplementedError):
+        importlib.import_module(".no_job_type_job", "zerog.tests")
 
 
 def test_no_schema_job_is_bad():
-    with pytest.raises(TypeError):
-        NoSchemaJob(MockDatastore(), MockQueue())
+    with pytest.raises(NotImplementedError):
+        importlib.import_module(".no_schema_job", "zerog.tests")
 
 
 def test_no_save(make_good_job):

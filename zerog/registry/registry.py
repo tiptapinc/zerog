@@ -52,17 +52,6 @@ class JobRegistry(object):
                 added[jobClass.__name__] = dict(
                     success=False, error="NotSubclass"
                 )
-
-            elif jobClass.JOB_TYPE == BaseJob.JOB_TYPE:
-                added[jobClass.__name__] = dict(
-                    success=False, error="NoJobType"
-                )
-
-            elif jobClass.SCHEMA == BaseJob.SCHEMA:
-                added[jobClass.__name__] = dict(
-                    success=False, error="NoSchema"
-                )
-
             else:
                 self.registry[jobClass.JOB_TYPE] = jobClass
                 added[jobClass.__name__] = dict(

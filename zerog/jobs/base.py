@@ -78,17 +78,22 @@ class BaseJob(ABC):
     DOCUMENT_TYPE = "zerog_job"   # used to make datastore key
     SCHEMA_VERSION = "1.0"
 
-    @property
-    @classmethod
-    @abstractmethod
-    def JOB_TYPE():
-        return "zerog_base_job"
+    JOB_TYPE = "must override"
+    SCHEMA = "must override"
 
-    @property
     @classmethod
-    @abstractmethod
-    def SCHEMA():
-        return BaseJobSchema
+    def __init_subclass__(cls, **kwargs):
+        # Require override of JOB_TYPE and SCHEMA. This method is called
+        # when a subclass of BaseJob is imported.
+        #
+        #   Args:
+        #       cls: The subclass being imported
+        #
+        super().__init_subclass__(**kwargs)
+
+        for attr in ["JOB_TYPE", "SCHEMA"]:
+            if getattr(cls, attr) == "must override":
+                raise NotImplementedError("Must override %s" % attr)
 
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
         self.datastore = datastore
