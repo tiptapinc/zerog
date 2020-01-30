@@ -78,8 +78,10 @@ class BaseJob(ABC):
     DOCUMENT_TYPE = "zerog_job"   # used to make datastore key
     SCHEMA_VERSION = "1.0"
 
-    JOB_TYPE = "must override"
-    SCHEMA = "must override"
+    JOB_TYPE = "zerog_base"
+    SCHEMA = BaseJobSchema
+
+    subclasses = []
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -92,7 +94,7 @@ class BaseJob(ABC):
         super().__init_subclass__(**kwargs)
 
         for attr in ["JOB_TYPE", "SCHEMA"]:
-            if getattr(cls, attr) == "must override":
+            if attr not in cls.__dict__:
                 raise NotImplementedError("Must override %s" % attr)
 
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
