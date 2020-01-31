@@ -31,6 +31,8 @@ DEFAULT_TTR = 3600 * 24   # long because broken workers are killed
 INTERNAL_ERROR = 500
 NO_RESULT = -1
 
+OVERRIDE_SIGNATURE = "zerog_job"
+
 
 class ErrorContinue(Exception):
     pass
@@ -75,13 +77,22 @@ class BaseJobSchema(Schema):
 
 
 class BaseJob(ABC):
+    """
+    must override:
+        JOB_TYPE
+        SCHEMA
+
+    may override:
+        SCHEMA_VERSION
+
+    do not override
+        DOCUMENT_TYPE
+    """
     DOCUMENT_TYPE = "zerog_job"   # used to make datastore key
     SCHEMA_VERSION = "1.0"
 
-    JOB_TYPE = "zerog_base"
-    SCHEMA = BaseJobSchema
-
-    subclasses = []
+    JOB_TYPE = OVERRIDE_SIGNATURE
+    SCHEMA = OVERRIDE_SIGNATURE
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -94,8 +105,10 @@ class BaseJob(ABC):
         super().__init_subclass__(**kwargs)
 
         for attr in ["JOB_TYPE", "SCHEMA"]:
-            if attr not in cls.__dict__:
-                raise NotImplementedError("Must override %s" % attr)
+            if getattr(cls, attr) == OVERRIDE_SIGNATURE:
+                raise NotImplementedError(
+                    "%s: Must override %s" % (cls.__name__, attr)
+                )
 
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
         self.datastore = datastore
