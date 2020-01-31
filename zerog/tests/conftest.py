@@ -4,6 +4,7 @@ import pdb
 import pytest
 
 from ..registry import JobRegistry
+from ..server import Server
 from ..workers import BaseWorker
 
 from .job_classes import GoodJob
@@ -101,5 +102,24 @@ def run_job(make_job_and_worker):
         job.reload()
         releaseJob = registry.queue.reserve()
         return job, queueJob, releaseJob
+
+    return _func
+
+
+@pytest.fixture
+def zerog_app():
+    """
+    Creates a zerog app with specified handlers
+    """
+    def _func(jobClasses, handlers):
+        # pdb.set_trace()
+        server = Server(
+            MockDatastore(),
+            MockQueue(),
+            MockQueue(),
+            jobClasses,
+            handlers
+        )
+        return server
 
     return _func

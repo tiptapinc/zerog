@@ -49,7 +49,7 @@ class Server(tornado.web.Application):
         signal.signal(signal.SIGTERM, self.sig_handler)
         signal.signal(signal.SIGINT, self.sig_handler)
 
-        log.debug("initializing Geyser server")
+        log.debug("initializing ZeroG server")
         argsStr = (
             "\n  datastore: %s\n  jobQueue: %s\n  ctrlQueue: %s" %
             (datastore, jobQueue, ctrlQueue)

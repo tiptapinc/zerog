@@ -51,7 +51,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.finish()
 
-    def _complete(self, statusCode, **kwargs):
+    def complete(self, statusCode, **kwargs):
         if kwargs.get('errMsg'):
             log.warning(kwargs['errMsg'])
             self.write("%s\n" % kwargs['errMsg'])
