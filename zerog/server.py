@@ -102,8 +102,6 @@ class Server(tornado.web.Application):
         )
 
     def worker_poll(self):
-        log.debug("polling worker")
-
         if self.parentConn.poll() is True:
             msg = self.parentConn.recv()
             log.debug("message from worker: %s" % msg)

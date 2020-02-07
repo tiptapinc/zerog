@@ -94,22 +94,6 @@ class BaseJob(ABC):
     JOB_TYPE = OVERRIDE_SIGNATURE
     SCHEMA = OVERRIDE_SIGNATURE
 
-    @classmethod
-    def __init_subclass__(cls, **kwargs):
-        # Require override of JOB_TYPE and SCHEMA. This method is called
-        # when a subclass of BaseJob is imported.
-        #
-        #   Args:
-        #       cls: The subclass being imported
-        #
-        super().__init_subclass__(**kwargs)
-
-        for attr in ["JOB_TYPE", "SCHEMA"]:
-            if getattr(cls, attr) == OVERRIDE_SIGNATURE:
-                raise NotImplementedError(
-                    "%s: Must override %s" % (cls.__name__, attr)
-                )
-
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
         self.datastore = datastore
         self.queue = queue
