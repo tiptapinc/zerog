@@ -51,5 +51,5 @@ class ProgressHandler(BaseHandler):
                 return uuid
             else:
                 raise HTTPError(
-                    500, "ProgressHandler.get needs 'uuid' argument"
+                    400, "ProgressHandler.get needs 'uuid' argument"
                 )
