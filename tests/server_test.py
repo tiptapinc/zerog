@@ -1,10 +1,9 @@
 import pdb
 import pytest
 
+from zerog.datastores.mock_datastore import MockDatastore
+from zerog.queues.mock_queue import MockQueue
 from zerog.server import Server
-
-from tests.mock_datastore import MockDatastore
-from tests.mock_queue import MockQueue
 
 
 def test_server_init():

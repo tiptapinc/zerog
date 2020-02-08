@@ -3,6 +3,7 @@ import pytest
 
 from zerog.workers.base import MAX_RESERVES, MAX_TIMEOUTS
 from zerog.jobs import INTERNAL_ERROR, NO_RESULT
+from zerog.queues.mock_queue import MockQueueJob
 
 from tests.job_classes import (
     GoodJob,
@@ -14,7 +15,6 @@ from tests.job_classes import (
     ErrorContinueJob,
     ErrorFinishJob
 )
-from tests.mock_queue import MockQueueJob
 
 
 def test_run_good_job(make_job_and_worker):

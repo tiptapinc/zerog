@@ -3,13 +3,13 @@ import multiprocessing
 import pdb
 import pytest
 
+from zerog.datastores.mock_datastore import MockDatastore
+from zerog.queues.mock_queue import MockQueue, MockQueueJob
 from zerog.registry import JobRegistry
 from zerog.server import Server
 from zerog.workers import BaseWorker
 
 from tests.job_classes import GoodJob
-from tests.mock_datastore import MockDatastore
-from tests.mock_queue import MockQueue, MockQueueJob
 
 
 @pytest.fixture
