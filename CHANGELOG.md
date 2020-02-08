@@ -1,3 +1,8 @@
+## v0.0.5
+
+* relocate 'tests' directory
+* add imports to top-level __init__.py
+
 ## v0.0.4
 
 * remove __init_subclass__ checks on class attribute overrides

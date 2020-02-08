@@ -2,12 +2,12 @@ import json
 import pdb
 import pytest
 
-from ..handlers.progress import ProgressHandler
-from ..handlers.run_job import RunJobHandler
-from ..jobs import BaseJob
-from ..registry import find_subclasses
+from zerog.handlers.progress import ProgressHandler
+from zerog.handlers.run_job import RunJobHandler
+from zerog.jobs import BaseJob
+from zerog.registry import find_subclasses
 
-from . import job_classes
+from tests import job_classes
 
 
 # These tests vary from the "kwarg_handlers" tests in the endpoint patterns,

@@ -1,10 +1,10 @@
 import pdb
 import pytest
 
-from ..workers.base import MAX_RESERVES, MAX_TIMEOUTS
-from ..jobs import INTERNAL_ERROR, NO_RESULT
+from zerog.workers.base import MAX_RESERVES, MAX_TIMEOUTS
+from zerog.jobs import INTERNAL_ERROR, NO_RESULT
 
-from .job_classes import (
+from tests.job_classes import (
     GoodJob,
     RequeueJob,
     ExceptionJob,
@@ -14,7 +14,7 @@ from .job_classes import (
     ErrorContinueJob,
     ErrorFinishJob
 )
-from .mock_queue import MockQueueJob
+from tests.mock_queue import MockQueueJob
 
 
 def test_run_good_job(make_job_and_worker):

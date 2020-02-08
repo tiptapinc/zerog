@@ -1,4 +1,4 @@
-from ..jobs import BaseJob, BaseJobSchema
+from zerog.jobs import BaseJob, BaseJobSchema
 
 
 class NoJobTypeJob(BaseJob):

@@ -3,12 +3,12 @@ import importlib
 import pdb
 import pytest
 
-from ..jobs import INTERNAL_ERROR, NO_RESULT
-from ..jobs.base import ErrorContinue, ErrorFinish, WarningFinish
+from zerog.jobs import INTERNAL_ERROR, NO_RESULT
+from zerog.jobs.base import ErrorContinue, ErrorFinish, WarningFinish
 
-from .job_classes import GoodJob, NoRunJob
-from .mock_datastore import MockDatastore
-from .mock_queue import MockQueue
+from tests.job_classes import GoodJob, NoRunJob
+from tests.mock_datastore import MockDatastore
+from tests.mock_queue import MockQueue
 
 
 def test_good_job_is_good(make_good_job):

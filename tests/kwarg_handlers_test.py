@@ -1,23 +1,16 @@
-#!/usr/bin/env python
-# encoding: utf-8
-"""
-Copyright (c) 2020 MotiveMetrics. All rights reserved.
-
-"""
 import json
 import pdb
 import pytest
-from tornado.httpclient import HTTPClientError
 
-from ..handlers.progress import ProgressHandler
-from ..handlers.run_job import RunJobHandler
-from ..jobs import BaseJob
-from ..registry import find_subclasses
+from zerog.handlers.progress import ProgressHandler, UUID_PATT
+from zerog.handlers.run_job import RunJobHandler, JOB_TYPE_PATT
+from zerog.jobs import BaseJob
+from zerog.registry import find_subclasses
 
-from . import job_classes
+from tests import job_classes
 
 
-# These tests vary from the "kwarg_handlers" tests only in the endpoint
+# These tests vary from the "arg_handlers" tests only in the endpoint
 # patterns, which test different paths to extract the uuid in the handler
 #
 # They need their own separate file because of limitations in the 'app'
@@ -27,8 +20,8 @@ from . import job_classes
 def app(zerog_app):
     jobClasses = find_subclasses(BaseJob)
     handlers = [
-        ("/progress/([^/]+)", ProgressHandler),
-        ("/runjob/([^/]+)", RunJobHandler)
+        ("/progress/%s" % UUID_PATT, ProgressHandler),
+        ("/runjob/%s" % JOB_TYPE_PATT, RunJobHandler)
     ]
     app = zerog_app(jobClasses, handlers)
     return app
@@ -48,12 +41,6 @@ def test_progress(app, http_client, base_url):
 
 
 @pytest.mark.gen_test
-def test_progress_bad_uuid(app, http_client, base_url):
-    with pytest.raises(HTTPClientError):
-        yield http_client.fetch("%s/progress/nope" % base_url)
-
-
-@pytest.mark.gen_test
 def test_run_job(app, http_client, base_url):
     response = yield http_client.fetch(
         (
@@ -66,13 +53,3 @@ def test_run_job(app, http_client, base_url):
 
     assert response.code == 201
     assert "uuid" in json.loads(response.body)
-
-
-@pytest.mark.gen_test
-def test_run_job_bad_job_type(app, http_client, base_url):
-    with pytest.raises(HTTPClientError):
-        yield http_client.fetch(
-            "%s/runjob/%s" % (base_url, "nope"),
-            method="POST",
-            body=json.dumps({})
-        )

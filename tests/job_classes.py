@@ -1,6 +1,6 @@
 from marshmallow import fields
 
-from ..jobs import BaseJob, BaseJobSchema, NO_RESULT
+from zerog.jobs import BaseJob, BaseJobSchema, NO_RESULT
 
 
 class GoodJobSchema(BaseJobSchema):

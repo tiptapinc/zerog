@@ -1,11 +1,11 @@
 import pdb
 import pytest
 
-from ..registry import JobRegistry, find_subclasses, import_submodules
+from zerog.registry import JobRegistry, find_subclasses, import_submodules
 
-from .job_classes import GoodJob, RequeueJob
-from .mock_datastore import MockDatastore
-from .mock_queue import MockQueue
+from tests.job_classes import GoodJob, RequeueJob
+from tests.mock_datastore import MockDatastore
+from tests.mock_queue import MockQueue
 
 
 def test_initial_registry():
