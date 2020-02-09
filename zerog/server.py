@@ -27,7 +27,7 @@ class Server(tornado.web.Application):
         self, datastore, jobQueue, ctrlQueue, jobClasses, handlers=[], **kwargs
     ):
         """
-        Initialize a Geyser Server, which is a subclass of Tornado's
+        Initialize a ZeroG Server, which is a subclass of Tornado's
         Application class
 
         Args:
@@ -38,7 +38,7 @@ class Server(tornado.web.Application):
             ctrlQueue: Queue for sharing control information among servers
 
             jobClasses: List of job classes (derived from BaseClass) that
-                        this Geyser instance will support. Additional job
+                        this ZeroG instance will support. Additional job
                         classes can be added later with the add_to_registry
                         method
 
@@ -82,7 +82,7 @@ class Server(tornado.web.Application):
         sys.exit()
 
     def make_worker(self):
-        log.debug("creating Geyser worker")
+        log.debug("creating ZeroG worker")
 
         self.parentConn, self.childConn = multiprocessing.Pipe()
         self.worker = zerog.workers.BaseWorker(

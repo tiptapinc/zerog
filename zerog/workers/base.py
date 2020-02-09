@@ -188,7 +188,7 @@ class BaseWorker(object):
         # Args:
         #   queueJob: queue job object. Currently it is a beanstalkc.Job
         #   stats: dictionary of queue statistics for the queueJob
-        #   job: Geyser Job object
+        #   job: ZeroG Job object
         #
         # Return True
         #     if the queueJob was deleted from the queue for too many reserves
