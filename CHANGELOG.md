@@ -1,3 +1,6 @@
+## v0.0.6
+* only handle SIGTERM, not SIGINT
+
 ## v0.0.5
 
 * relocate 'tests' directory

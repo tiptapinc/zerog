@@ -47,7 +47,7 @@ class Server(tornado.web.Application):
             **kwargs: passed to parent __init__method
         """
         signal.signal(signal.SIGTERM, self.sig_handler)
-        signal.signal(signal.SIGINT, self.sig_handler)
+        # signal.signal(signal.SIGINT, self.sig_handler)
 
         log.debug("initializing ZeroG server")
         argsStr = (

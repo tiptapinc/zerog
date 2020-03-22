@@ -16,6 +16,7 @@ class BeanstalkdQueue(object):
     def __init__(self, host, port, queueName):
         self.host = host
         self.port = port
+        self.queueName = queueName
         self.bean = beanstalkc.Connection(host=host, port=port)
         self.do_bean("use", queueName)
         self.do_bean("watch", queueName)
@@ -33,6 +34,6 @@ class BeanstalkdQueue(object):
 
             except beanstalkc.SocketError:
                 log.warning("lost connection to beanstalkd - reconnecting")
-                self.__init__()
+                self.__init__(self.host, self.port, self.queueName)
 
         raise beanstalkc.SocketError
