@@ -139,7 +139,6 @@ class BaseWorker(object):
 
             # run the job by calling its run method
             resultCode = job.run()
-            log.debug("job %s completed. resultCode: %s" % (uuid, resultCode))
 
             # delete the queueJob now that the actual job has completed
             queueJob.delete()
@@ -152,6 +151,9 @@ class BaseWorker(object):
             if resultCode == zerog.jobs.NO_RESULT:
                 job.enqueue(delay=10)
             else:
+                log.info(
+                    "job %s completed. resultCode: %s" % (uuid, resultCode)
+                )
                 job.record_result(resultCode)
 
             return

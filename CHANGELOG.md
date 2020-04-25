@@ -1,3 +1,6 @@
+## v0.0.8
+* log job completion
+
 ## v0.0.7
 * switch all log levels to INFO
 * log job info on run_job POST
