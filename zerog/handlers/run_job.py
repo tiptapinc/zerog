@@ -10,6 +10,9 @@ from tornado.web import HTTPError
 
 from .base import BaseHandler
 
+import logging
+log = logging.getLogger(__name__)
+
 JOB_TYPE_PATT = "(?P<jobtype>[^/]+)"
 
 
@@ -26,6 +29,10 @@ class RunJobHandler(BaseHandler):
             data = {}
 
         jobType = self.derive_job_type(data, *args, **kwargs)
+        log.info(
+            "creating ZeroG Job of type:%s, from data\n%s" %
+            (jobType, json.dumps(data, indent=4))
+        )
         job = self.registry.make_job(data, jobType)
 
         if job:

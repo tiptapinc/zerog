@@ -15,7 +15,6 @@ import zerog.workers
 
 import logging
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 HANDLERS = []
 POLL_INTERVAL = 2

@@ -8,7 +8,6 @@ from zerog.jobs import BaseJob, make_key
 
 import logging
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 class JobRegistry(object):

@@ -1,3 +1,7 @@
+## v0.0.7
+* switch all log levels to INFO
+* log job info on run_job POST
+
 ## v0.0.6
 * only handle SIGTERM, not SIGINT
 

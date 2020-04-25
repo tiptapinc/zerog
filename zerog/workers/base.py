@@ -12,7 +12,6 @@ import zerog.jobs
 
 import logging
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 MAX_TIMEOUTS = 3
 MAX_RESERVES = 3
