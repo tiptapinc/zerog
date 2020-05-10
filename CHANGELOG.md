@@ -1,3 +1,10 @@
+## v0.0.10
+* expect job's run method to return a (resultCode, delay) tuple
+* handle non-tuple return values
+
+## v0.0.9
+* use atexit for exit cleanup instead of trapping SIGINT & SIGKILL
+
 ## v0.0.8
 * log job completion
 

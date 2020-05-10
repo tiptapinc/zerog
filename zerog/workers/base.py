@@ -138,18 +138,41 @@ class BaseWorker(object):
                 return
 
             # run the job by calling its run method
-            resultCode = job.run()
+            #
+            # The run method should return a (resultCode, delay) tuple, and
+            # if the resultCode == NO_RESULT, then the job is requeued with
+            # the returned delay
+            #
+            # Not sure if it's wise to do so, we also try to handle bad return
+            # values by converting to defaults:
+            #
+            returnVal = job.run()
+            if isinstance(returnVal, (tuple, list)):
+                # return value is a tuple, as expected, or we can accept
+                # [resultCode, delay] as well
+                try:
+                    resultCode = int(returnVal[0])  # first resultCode
+                except (ValueError, TypeError):
+                    resultCode = 200
+                try:
+                    delay = int(returnVal[1])       # then delay
+                except (ValueError, TypeError):
+                    delay = 10
+            else:
+                # if return value is not a tuple, assume default delay
+                # and assume return value is a
+                delay = 10
+                try:
+                    resultCode = int(returnVal)
+                except (ValueError, TypeError):
+                    resultCode = 200
 
             # delete the queueJob now that the actual job has completed
             queueJob.delete()
 
-            # if resultCode is None, assume that job returned normally and
-            # translate to a 200
-            resultCode = resultCode or 200
-
             # if the job asked to be requeued, requeue it with a delay
             if resultCode == zerog.jobs.NO_RESULT:
-                job.enqueue(delay=10)
+                job.enqueue(delay=delay)
             else:
                 log.info(
                     "job %s completed. resultCode: %s" % (uuid, resultCode)

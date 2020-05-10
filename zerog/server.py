@@ -4,9 +4,10 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
+import atexit
 import multiprocessing
+import os
 import signal
-import sys
 import tornado.web
 import tornado.ioloop
 
@@ -45,9 +46,6 @@ class Server(tornado.web.Application):
 
             **kwargs: passed to parent __init__method
         """
-        signal.signal(signal.SIGTERM, self.sig_handler)
-        # signal.signal(signal.SIGINT, self.sig_handler)
-
         log.debug("initializing ZeroG server")
         argsStr = (
             "\n  datastore: %s\n  jobQueue: %s\n  ctrlQueue: %s" %
@@ -66,19 +64,18 @@ class Server(tornado.web.Application):
         self.registry.add_classes(jobClasses)
 
         self.make_worker()
+        atexit.register(self.exit_handler)
 
         handlers += HANDLERS
         log.info("initializing Tornado parent, handlers:%s" % handlers)
         super(Server, self).__init__(handlers, **kwargs)
 
-    def sig_handler(self, sig, frame):
+    def exit_handler(self):
         """
-        Got a SIGINT or SIGTERM.
-            - For now: suicide
-            - To do: gracefully shutdown server
+        Makes sure worker dies on exit
         """
-        log.info("signal. sig: %s, frame: %s" % (sig, frame))
-        sys.exit()
+        log.info("ZeroG server exiting")
+        self.kill_worker()
 
     def make_worker(self):
         log.debug("creating ZeroG worker")
@@ -99,6 +96,11 @@ class Server(tornado.web.Application):
         tornado.ioloop.IOLoop.instance().call_later(
             0, self.worker_poll
         )
+
+    def kill_worker(self):
+        killpid = self.proc.pid
+        log.info("killing ZeroG worker, pid: %s" % killpid)
+        os.kill(killpid, signal.SIGKILL)
 
     def worker_poll(self):
         if self.parentConn.poll() is True:

@@ -10,6 +10,11 @@ from tests.job_classes import (
     RequeueJob,
     ExceptionJob,
     NoReturnValJob,
+    ReturnGoodListJob,
+    ReturnBadListJob,
+    ReturnGoodStringJob,
+    ReturnBadStringJob,
+    ReturnDictJob,
     JobLogInfoJob,
     WarningFinishJob,
     ErrorContinueJob,
@@ -107,6 +112,41 @@ def test_exception_job(run_job):
 
 def test_no_return_val_job(run_job):
     job, queueJob, releaseJob = run_job(NoReturnValJob)
+
+    assert releaseJob is None
+    assert job.resultCode == 200
+
+
+def test_return_good_list_job(run_job):
+    job, queueJob, releaseJob = run_job(ReturnGoodListJob)
+
+    assert releaseJob is None
+    assert job.resultCode == 220
+
+
+def test_return_bad_list_job(run_job):
+    job, queueJob, releaseJob = run_job(ReturnBadListJob)
+
+    assert releaseJob is None
+    assert job.resultCode == 200
+
+
+def test_return_good_string_job(run_job):
+    job, queueJob, releaseJob = run_job(ReturnGoodStringJob)
+
+    assert releaseJob is None
+    assert job.resultCode == 220
+
+
+def test_return_bad_string_job(run_job):
+    job, queueJob, releaseJob = run_job(ReturnBadStringJob)
+
+    assert releaseJob is None
+    assert job.resultCode == 200
+
+
+def test_return_dict_job(run_job):
+    job, queueJob, releaseJob = run_job(ReturnDictJob)
 
     assert releaseJob is None
     assert job.resultCode == 200

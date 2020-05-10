@@ -76,7 +76,7 @@ def test_make_job_with_job_type_arg(good_job_registry):
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "gracious"
-    assert job.run() == 200
+    assert job.run() == (200, None)
 
 
 def test_make_job_with_bad_job_type_arg(good_job_registry):
@@ -93,7 +93,7 @@ def test_make_job_from_data(good_job_registry):
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "not really"
-    assert job.run() == 200
+    assert job.run() == (200, None)
 
 
 def test_get_job(good_job_registry):
@@ -104,7 +104,7 @@ def test_get_job(good_job_registry):
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "gracious"
-    assert job.run() == 200
+    assert job.run() == (200, None)
 
 
 def test_get_job_bad_uuid(good_job_registry):

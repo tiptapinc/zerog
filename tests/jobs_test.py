@@ -16,7 +16,7 @@ def test_good_job_is_good(make_good_job):
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "gracious"
-    assert job.run() == 200
+    assert job.run() == (200, None)
 
 
 def test_no_run_job_is_bad():

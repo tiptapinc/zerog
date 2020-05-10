@@ -17,7 +17,7 @@ class GoodJob(BaseJob):
         self.goodness = kwargs.get("goodness", "gracious")
 
     def run(self):
-        return 200
+        return 200, None
 
 
 class NoRunJob(BaseJob):
@@ -41,9 +41,9 @@ class RequeueJob(BaseJob):
         self.add_to_completeness(0.6)
 
         if self.completeness < 1:
-            return NO_RESULT
+            return NO_RESULT, 1
         else:
-            return 200
+            return 200, None
 
 
 class NoReturnValJob(BaseJob):
@@ -52,6 +52,46 @@ class NoReturnValJob(BaseJob):
 
     def run(self):
         return
+
+
+class ReturnGoodListJob(BaseJob):
+    JOB_TYPE = "return_good_list_test_job"
+    SCHEMA = BaseJobSchema
+
+    def run(self):
+        return [220, None]
+
+
+class ReturnBadListJob(BaseJob):
+    JOB_TYPE = "return_bad_list_test_job"
+    SCHEMA = BaseJobSchema
+
+    def run(self):
+        return [None, None]
+
+
+class ReturnGoodStringJob(BaseJob):
+    JOB_TYPE = "return_good_string_test_job"
+    SCHEMA = BaseJobSchema
+
+    def run(self):
+        return "220", None
+
+
+class ReturnBadStringJob(BaseJob):
+    JOB_TYPE = "return_bad_string_test_job"
+    SCHEMA = BaseJobSchema
+
+    def run(self):
+        return "Bad", None
+
+
+class ReturnDictJob(BaseJob):
+    JOB_TYPE = "return_bad_string_test_job"
+    SCHEMA = BaseJobSchema
+
+    def run(self):
+        return dict(a=10, b=30)
 
 
 class JobLogInfoJob(BaseJob):
