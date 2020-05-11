@@ -8,11 +8,11 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - python/load-cache
+      - python/load-cache:
         dependency-file: configs/requirements.txt
-      - python/install-deps
+      - python/install-deps:
         dependency-file: configs/requirements.txt
-      - python/save-cache
+      - python/save-cache:
         dependency-file: configs/requirements.txt
       - run:
           command: ./run_tests.sh
