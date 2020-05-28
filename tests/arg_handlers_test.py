@@ -7,7 +7,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 import json
 import pdb
 import pytest
-from tornado.httpclient import HTTPClientError
+from tornado.httpclient import HTTPError
 
 from zerog.handlers.progress import ProgressHandler
 from zerog.handlers.run_job import RunJobHandler
@@ -49,7 +49,7 @@ def test_progress(app, http_client, base_url):
 
 @pytest.mark.gen_test
 def test_progress_bad_uuid(app, http_client, base_url):
-    with pytest.raises(HTTPClientError):
+    with pytest.raises(HTTPError):
         yield http_client.fetch("%s/progress/nope" % base_url)
 
 
@@ -70,7 +70,7 @@ def test_run_job(app, http_client, base_url):
 
 @pytest.mark.gen_test
 def test_run_job_bad_job_type(app, http_client, base_url):
-    with pytest.raises(HTTPClientError):
+    with pytest.raises(HTTPError):
         yield http_client.fetch(
             "%s/runjob/%s" % (base_url, "nope"),
             method="POST",
