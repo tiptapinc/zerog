@@ -25,7 +25,7 @@ jobs:
           command: sudo apt-cache search libcouchbase
           name: Search the APT cache for libcouchbase
       - run:
-          command: sudo apt-get install libcouchbase3 libcouchbase3-dev libcouchbase3-tools libcouchbase-dbg libcouchbase3-libev libcouchbase3-libevent
+          command: sudo apt-get install libcouchbase3 libcouchbase3-tools libcouchbase-dbg libcouchbase3-libev libcouchbase3-libevent
           name: Install libcouchbase
       - python/install-deps
       - python/save-cache
