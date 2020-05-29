@@ -16,8 +16,11 @@ jobs:
           command: sudo apt-key add couchbase.key
           name: Add Couchbase Key to Trusted Package Keys
       - run:
-          command: echo "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu1604 xenial xenial/main" | sudo tee -a /etc/apt/sources.list
+          command: echo "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu1804 bionic bionic/main" | sudo tee -a /etc/apt/sources.list
           name: Append couchbase repo to /etc/apt/sources.list
+      - run:
+          command: cat /etc/apt/sources.list
+          name: Print contents of /etc/apt/sources.list          
       - run:
           command: sudo apt-get update
           name: Refresh the APT cache
