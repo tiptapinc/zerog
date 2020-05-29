@@ -10,7 +10,22 @@ jobs:
       - checkout
       - python/load-cache
       - run:
-          command: sudo apt-get install libcouchbase
+          command: wget https://packages.couchbase.com/clients/c/repos/deb/couchbase.key
+          name: Get Couchbase Key 
+      - run:
+          command: sudo apt-key add couchbase.key
+          name: Add Couchbase Key to Trusted Package Keys
+      - run:
+          command: sudo echo "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu1604 xenial xenial/main" > /etc/apt/source.list.d/couchbase.list
+          name: Create couchbase.list file in /etc/apt/source.list.d
+      - run:
+          command: sudo apt-get update
+          name: Refresh the APT cache
+      - run:
+          command: sudo apt-cache search libcouchbase
+          name: Search the APT cache for libcouchbase
+      - run:
+          command: sudo apt-get install libcouchbase3 libcouchbase3-dev libcouchbase3-tools libcouchbase-dbg libcouchbase3-libev libcouchbase3-libevent
           name: Install libcouchbase
       - python/install-deps
       - python/save-cache
