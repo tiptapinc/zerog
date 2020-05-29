@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.1" />
+<title>zerog.server API documentation</title>
+<meta name="description" content="Copyright (c) 2020 MotiveMetrics. All rights reserved." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>zerog.server</code></h1>
+</header>
+<section id="section-intro">
+<p>Copyright (c) 2020 MotiveMetrics. All rights reserved.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">#!/usr/bin/env python
+# encoding: utf-8
+&#34;&#34;&#34;
+Copyright (c) 2020 MotiveMetrics. All rights reserved.
+
+&#34;&#34;&#34;
+import atexit
+import multiprocessing
+import os
+import signal
+import tornado.web
+import tornado.ioloop
+
+import zerog.registry
+import zerog.workers
+
+import logging
+log = logging.getLogger(__name__)
+
+HANDLERS = []
+POLL_INTERVAL = 2
+POLL_JITTER = 0.1
+
+
+class Server(tornado.web.Application):
+    def __init__(
+        self, datastore, jobQueue, ctrlQueue, jobClasses, handlers=[], **kwargs
+    ):
+        &#34;&#34;&#34;
+        Initialize a ZeroG Server, which is a subclass of Tornado&#39;s
+        Application class
+
+        Args:
+            datastore: Datastore object for persisting jobs.
+
+            jobQueue: Queue for sharing jobs with workers
+
+            ctrlQueue: Queue for sharing control information among servers
+
+            jobClasses: List of job classes (derived from BaseClass) that
+                        this ZeroG instance will support. Additional job
+                        classes can be added later with the add_to_registry
+                        method
+
+            *args: passed to parent __init__ method
+
+            **kwargs: passed to parent __init__method
+        &#34;&#34;&#34;
+        log.debug(&#34;initializing ZeroG server&#34;)
+        argsStr = (
+            &#34;\n  datastore: %s\n  jobQueue: %s\n  ctrlQueue: %s&#34; %
+            (datastore, jobQueue, ctrlQueue)
+        )
+        argsStr += &#34;\n  jobClasses:&#34;
+        for jc in jobClasses:
+            argsStr += &#34;\n    %s&#34; % jc
+        log.debug(argsStr)
+
+        self.datastore = datastore
+        self.jobQueue = jobQueue
+        self.ctrlQueue = ctrlQueue
+
+        self.registry = zerog.registry.JobRegistry(datastore, jobQueue)
+        self.registry.add_classes(jobClasses)
+
+        self.make_worker()
+        atexit.register(self.exit_handler)
+
+        handlers += HANDLERS
+        log.info(&#34;initializing Tornado parent, handlers:%s&#34; % handlers)
+        super(Server, self).__init__(handlers, **kwargs)
+
+    def exit_handler(self):
+        &#34;&#34;&#34;
+        Makes sure worker dies on exit
+        &#34;&#34;&#34;
+        log.info(&#34;ZeroG server exiting&#34;)
+        self.kill_worker()
+
+    def make_worker(self):
+        log.debug(&#34;creating ZeroG worker&#34;)
+
+        self.parentConn, self.childConn = multiprocessing.Pipe()
+        self.worker = zerog.workers.BaseWorker(
+            self.datastore, self.jobQueue, self.registry, self.childConn
+        )
+
+        log.debug(&#34;starting worker.run process&#34;)
+
+        self.proc = multiprocessing.Process(target=self.worker.run)
+        self.proc.daemon = True
+        self.proc.start()
+
+        log.debug(&#34;setting callback for worker_poll&#34;)
+
+        tornado.ioloop.IOLoop.instance().call_later(
+            0, self.worker_poll
+        )
+
+    def kill_worker(self):
+        killpid = self.proc.pid
+        log.info(&#34;killing ZeroG worker, pid: %s&#34; % killpid)
+        os.kill(killpid, signal.SIGKILL)
+
+    def worker_poll(self):
+        if self.parentConn.poll() is True:
+            msg = self.parentConn.recv()
+            log.debug(&#34;message from worker: %s&#34; % msg)
+
+        tornado.ioloop.IOLoop.instance().call_later(
+            POLL_INTERVAL, self.worker_poll
+        )</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="zerog.server.Server"><code class="flex name class">
+<span>class <span class="ident">Server</span></span>
+<span>(</span><span>datastore, jobQueue, ctrlQueue, jobClasses, handlers=[], **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A collection of request handlers that make up a web application.</p>
+<p>Instances of this class are callable and can be passed directly to
+HTTPServer to serve the application::</p>
+<pre><code>application = web.Application([
+    (r"/", MainPageHandler),
+])
+http_server = httpserver.HTTPServer(application)
+http_server.listen(8080)
+ioloop.IOLoop.current().start()
+</code></pre>
+<p>The constructor for this class takes in a list of <code>~.routing.Rule</code>
+objects or tuples of values corresponding to the arguments of
+<code>~.routing.Rule</code> constructor: <code>(matcher, target, [target_kwargs], [name])</code>,
+the values in square brackets being optional. The default matcher is
+<code>~.routing.PathMatches</code>, so <code>(regexp, target)</code> tuples can also be used
+instead of <code>(PathMatches(regexp), target)</code>.</p>
+<p>A common routing target is a <code>RequestHandler</code> subclass, but you can also
+use lists of rules as a target, which create a nested routing configuration::</p>
+<pre><code>application = web.Application([
+    (HostMatches("example.com"), [
+        (r"/", MainPageHandler),
+        (r"/feed", FeedHandler),
+    ]),
+])
+</code></pre>
+<p>In addition to this you can use nested <code>~.routing.Router</code> instances,
+<code>~.httputil.HTTPMessageDelegate</code> subclasses and callables as routing targets
+(see <code>~.routing</code> module docs for more information).</p>
+<p>When we receive requests, we iterate over the list in order and
+instantiate an instance of the first request class whose regexp
+matches the request path. The request class can be specified as
+either a class object or a (fully-qualified) name.</p>
+<p>A dictionary may be passed as the third element (<code>target_kwargs</code>)
+of the tuple, which will be used as keyword arguments to the handler's
+constructor and <code>~RequestHandler.initialize</code> method. This pattern
+is used for the <code>StaticFileHandler</code> in this example (note that a
+<code>StaticFileHandler</code> can be installed automatically with the
+static_path setting described below)::</p>
+<pre><code>application = web.Application([
+    (r"/static/(.*)", web.StaticFileHandler, {"path": "/var/www"}),
+])
+</code></pre>
+<p>We support virtual hosts with the <code>add_handlers</code> method, which takes in
+a host regular expression as the first argument::</p>
+<pre><code>application.add_handlers(r"www\.myhost\.com", [
+    (r"/article/([0-9]+)", ArticleHandler),
+])
+</code></pre>
+<p>If there's no match for the current request's host, then <code>default_host</code>
+parameter value is matched against host regular expressions.</p>
+<p>You can serve static files by sending the <code>static_path</code> setting
+as a keyword argument. We will serve those files from the
+<code>/static/</code> URI (this is configurable with the
+<code>static_url_prefix</code> setting), and we will serve <code>/favicon.ico</code>
+and <code>/robots.txt</code> from the same directory.
+A custom subclass of
+<code>StaticFileHandler</code> can be specified with the
+<code>static_handler_class</code> setting.</p>
+<div class="admonition versionchanged">
+<p class="admonition-title">Changed in version:&ensp;4.5</p>
+<p>Integration with the new <code>tornado.routing</code> module.</p>
+</div>
+<p>Initialize a ZeroG Server, which is a subclass of Tornado's
+Application class</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>datastore</code></strong></dt>
+<dd>Datastore object for persisting jobs.</dd>
+<dt><strong><code>jobQueue</code></strong></dt>
+<dd>Queue for sharing jobs with workers</dd>
+<dt><strong><code>ctrlQueue</code></strong></dt>
+<dd>Queue for sharing control information among servers</dd>
+<dt><strong><code>jobClasses</code></strong></dt>
+<dd>List of job classes (derived from BaseClass) that
+this ZeroG instance will support. Additional job
+classes can be added later with the add_to_registry
+method</dd>
+<dt><strong><code>*args</code></strong></dt>
+<dd>passed to parent <strong>init</strong> method</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>passed to parent __init__method</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Server(tornado.web.Application):
+    def __init__(
+        self, datastore, jobQueue, ctrlQueue, jobClasses, handlers=[], **kwargs
+    ):
+        &#34;&#34;&#34;
+        Initialize a ZeroG Server, which is a subclass of Tornado&#39;s
+        Application class
+
+        Args:
+            datastore: Datastore object for persisting jobs.
+
+            jobQueue: Queue for sharing jobs with workers
+
+            ctrlQueue: Queue for sharing control information among servers
+
+            jobClasses: List of job classes (derived from BaseClass) that
+                        this ZeroG instance will support. Additional job
+                        classes can be added later with the add_to_registry
+                        method
+
+            *args: passed to parent __init__ method
+
+            **kwargs: passed to parent __init__method
+        &#34;&#34;&#34;
+        log.debug(&#34;initializing ZeroG server&#34;)
+        argsStr = (
+            &#34;\n  datastore: %s\n  jobQueue: %s\n  ctrlQueue: %s&#34; %
+            (datastore, jobQueue, ctrlQueue)
+        )
+        argsStr += &#34;\n  jobClasses:&#34;
+        for jc in jobClasses:
+            argsStr += &#34;\n    %s&#34; % jc
+        log.debug(argsStr)
+
+        self.datastore = datastore
+        self.jobQueue = jobQueue
+        self.ctrlQueue = ctrlQueue
+
+        self.registry = zerog.registry.JobRegistry(datastore, jobQueue)
+        self.registry.add_classes(jobClasses)
+
+        self.make_worker()
+        atexit.register(self.exit_handler)
+
+        handlers += HANDLERS
+        log.info(&#34;initializing Tornado parent, handlers:%s&#34; % handlers)
+        super(Server, self).__init__(handlers, **kwargs)
+
+    def exit_handler(self):
+        &#34;&#34;&#34;
+        Makes sure worker dies on exit
+        &#34;&#34;&#34;
+        log.info(&#34;ZeroG server exiting&#34;)
+        self.kill_worker()
+
+    def make_worker(self):
+        log.debug(&#34;creating ZeroG worker&#34;)
+
+        self.parentConn, self.childConn = multiprocessing.Pipe()
+        self.worker = zerog.workers.BaseWorker(
+            self.datastore, self.jobQueue, self.registry, self.childConn
+        )
+
+        log.debug(&#34;starting worker.run process&#34;)
+
+        self.proc = multiprocessing.Process(target=self.worker.run)
+        self.proc.daemon = True
+        self.proc.start()
+
+        log.debug(&#34;setting callback for worker_poll&#34;)
+
+        tornado.ioloop.IOLoop.instance().call_later(
+            0, self.worker_poll
+        )
+
+    def kill_worker(self):
+        killpid = self.proc.pid
+        log.info(&#34;killing ZeroG worker, pid: %s&#34; % killpid)
+        os.kill(killpid, signal.SIGKILL)
+
+    def worker_poll(self):
+        if self.parentConn.poll() is True:
+            msg = self.parentConn.recv()
+            log.debug(&#34;message from worker: %s&#34; % msg)
+
+        tornado.ioloop.IOLoop.instance().call_later(
+            POLL_INTERVAL, self.worker_poll
+        )</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>tornado.web.Application</li>
+<li>tornado.routing.ReversibleRouter</li>
+<li>tornado.routing.Router</li>
+<li>tornado.httputil.HTTPServerConnectionDelegate</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="zerog.server.Server.exit_handler"><code class="name flex">
+<span>def <span class="ident">exit_handler</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Makes sure worker dies on exit</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def exit_handler(self):
+    &#34;&#34;&#34;
+    Makes sure worker dies on exit
+    &#34;&#34;&#34;
+    log.info(&#34;ZeroG server exiting&#34;)
+    self.kill_worker()</code></pre>
+</details>
+</dd>
+<dt id="zerog.server.Server.kill_worker"><code class="name flex">
+<span>def <span class="ident">kill_worker</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def kill_worker(self):
+    killpid = self.proc.pid
+    log.info(&#34;killing ZeroG worker, pid: %s&#34; % killpid)
+    os.kill(killpid, signal.SIGKILL)</code></pre>
+</details>
+</dd>
+<dt id="zerog.server.Server.make_worker"><code class="name flex">
+<span>def <span class="ident">make_worker</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_worker(self):
+    log.debug(&#34;creating ZeroG worker&#34;)
+
+    self.parentConn, self.childConn = multiprocessing.Pipe()
+    self.worker = zerog.workers.BaseWorker(
+        self.datastore, self.jobQueue, self.registry, self.childConn
+    )
+
+    log.debug(&#34;starting worker.run process&#34;)
+
+    self.proc = multiprocessing.Process(target=self.worker.run)
+    self.proc.daemon = True
+    self.proc.start()
+
+    log.debug(&#34;setting callback for worker_poll&#34;)
+
+    tornado.ioloop.IOLoop.instance().call_later(
+        0, self.worker_poll
+    )</code></pre>
+</details>
+</dd>
+<dt id="zerog.server.Server.worker_poll"><code class="name flex">
+<span>def <span class="ident">worker_poll</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def worker_poll(self):
+    if self.parentConn.poll() is True:
+        msg = self.parentConn.recv()
+        log.debug(&#34;message from worker: %s&#34; % msg)
+
+    tornado.ioloop.IOLoop.instance().call_later(
+        POLL_INTERVAL, self.worker_poll
+    )</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="zerog" href="index.html">zerog</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="zerog.server.Server" href="#zerog.server.Server">Server</a></code></h4>
+<ul class="">
+<li><code><a title="zerog.server.Server.exit_handler" href="#zerog.server.Server.exit_handler">exit_handler</a></code></li>
+<li><code><a title="zerog.server.Server.kill_worker" href="#zerog.server.Server.kill_worker">kill_worker</a></code></li>
+<li><code><a title="zerog.server.Server.make_worker" href="#zerog.server.Server.make_worker">make_worker</a></code></li>
+<li><code><a title="zerog.server.Server.worker_poll" href="#zerog.server.Server.worker_poll">worker_poll</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
