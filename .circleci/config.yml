@@ -9,27 +9,6 @@ jobs:
     steps:
       - checkout
       - python/load-cache
-      # - run:
-      #     command: wget https://packages.couchbase.com/clients/c/repos/deb/couchbase.key
-      #     name: Get Couchbase Key 
-      # - run:
-      #     command: sudo apt-key add couchbase.key
-      #     name: Add Couchbase Key to Trusted Package Keys
-      # - run:
-      #     command: echo "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu1804 bionic bionic/main" | sudo tee -a /etc/apt/sources.list
-      #     name: Append couchbase repo to /etc/apt/sources.list
-      # - run:
-      #     command: cat /etc/apt/sources.list
-      #     name: Print contents of /etc/apt/sources.list          
-      # - run:
-      #     command: sudo apt-get update
-      #     name: Refresh the APT cache
-      # - run:
-      #     command: sudo apt-cache search libcouchbase
-      #     name: Search the APT cache for libcouchbase
-      # - run:
-      #     command: sudo apt-get install libcouchbase3 libcouchbase-dev libcouchbase3-tools libcouchbase-dbg libcouchbase3-libev libcouchbase3-libevent
-      #     name: Install libcouchbase
       - run:
           command: wget http://packages.couchbase.com/releases/couchbase-release/couchbase-release-1.0-6-amd64.deb
           name: Get Couchbase Release Repo
