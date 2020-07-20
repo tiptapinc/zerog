@@ -4,6 +4,8 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
+import couchbase.exceptions
+
 import json
 import os
 import traceback
@@ -191,6 +193,11 @@ class BaseWorker(object):
             if self._manage_retries(queueJob, stats, job) is False:
                 queueJob.release(delay=10)
             return
+
+        except couchbase.exceptions.TimeoutError as e:
+            # this is a temporary hack because we're seeing timeout errors
+            log.warning("couchbase timeout error %s" % e)
+            queueJob.release(delay=10)
 
         except:
             # unknown exception occurred while job was running. Record it

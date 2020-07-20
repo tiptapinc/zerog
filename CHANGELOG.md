@@ -1,3 +1,6 @@
+## v0.0.11
+* always requeue on couchbase timeouts -- temp hack
+
 ## v0.0.10
 * expect job's run method to return a (resultCode, delay) tuple
 * handle non-tuple return values
