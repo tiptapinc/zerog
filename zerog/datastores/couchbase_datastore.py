@@ -30,8 +30,9 @@ class CouchbaseDatastore(object):
 
         connectArgs = []
         for arg in CONNECTION_KWARGS:
-            if arg in kwargs:
-                connectArgs.append("{0}={1}".format(arg, kwargs[arg]))
+            value = kwargs.pop(arg, None)
+            if value:
+                connectArgs.append("{0}={1}".format(arg, value))
 
         queryStr = "&".join(connectArgs)
         if queryStr:
