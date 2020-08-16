@@ -37,7 +37,7 @@ class CouchbaseDatastore(object):
         if queryStr:
             connectionString += "/?{0}".format(queryStr)
 
-        cluster = Cluster('couchbase://%s' % host)
+        cluster = Cluster(connectionString)
         authenticator = PasswordAuthenticator(username, password)
         cluster.authenticate(authenticator)
         kwargs['quiet'] = True
