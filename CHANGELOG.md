@@ -1,3 +1,9 @@
+## v0.0.12
+* allow connection kwargs when creating CouchbaseDatastore
+		- operation_timeout
+		- config_total_timeout
+		- config_node_timeout
+
 ## v0.0.11
 * always requeue on couchbase timeouts -- temp hack
 

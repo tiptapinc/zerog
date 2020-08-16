@@ -10,6 +10,13 @@ from couchbase.exceptions import KeyExistsError, TemporaryFailError
 import logging
 log = logging.getLogger(__name__)
 
+CONNECTION_KWARGS = [
+    # this list is incomplete
+    "operation_timeout",
+    "config_total_timeout",
+    "config_node_timeout"
+]
+
 
 class CouchbaseDatastore(object):
     """
@@ -19,6 +26,17 @@ class CouchbaseDatastore(object):
     lockedException = TemporaryFailError
 
     def __init__(self, host, username, password, bucket, **kwargs):
+        connectionString = "couchbase://{0}".format(host)
+
+        connectArgs = []
+        for arg in CONNECTION_KWARGS:
+            if arg in kwargs:
+                connectArgs.append("{0}={1}".format(arg, kwargs[arg]))
+
+        queryStr = "&".join(connectArgs)
+        if queryStr:
+            connectionString += "/?{0}".format(queryStr)
+
         cluster = Cluster('couchbase://%s' % host)
         authenticator = PasswordAuthenticator(username, password)
         cluster.authenticate(authenticator)
