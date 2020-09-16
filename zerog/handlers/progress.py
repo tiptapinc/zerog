@@ -23,7 +23,7 @@ class ProgressHandler(BaseHandler):
                       derive_uuid method
         """
         uuid = self.derive_uuid(*args, **kwargs)
-        job = self.registry.get_job(uuid)
+        job = self.application.get_job(uuid)
 
         if job:
             self.complete(200, output=json.dumps(job.progress(), indent=4))

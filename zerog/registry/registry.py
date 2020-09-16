@@ -11,23 +11,12 @@ log = logging.getLogger(__name__)
 
 
 class JobRegistry(object):
-    def __init__(self, datastore, queue, keepalive=None):
+    def __init__(self):
         """
         Maintain a registry of job classes which maps job type to job class.
 
         Use the type -> class mapping to instantiate jobs from class data
-
-        Args:
-            datastore: Datastore object for persisting jobs. Jobs need to
-                       know this because they persist themselves
-
-            queue: Job queue for sharing jobs with workers. Jobs need to know
-                   this because they enqueue themselves
         """
-        self.datastore = datastore
-        self.queue = queue
-        self.keepalive = keepalive
-
         self.registry = {}
 
     def add_classes(self, jobClasses):
@@ -62,13 +51,22 @@ class JobRegistry(object):
     def get_registered_classes(self):
         return list(self.registry.values())
 
-    def make_job(self, data, jobType=None):
+    def make_job(self, data, datastore, queue, keepalive, jobType=None):
         """
         Creates an instance of a job and validates that the data passed
         to instantiate it.
 
         Args:
             data: Data used to initialize the job's attributes
+
+            datastore: Datastore object for persisting jobs. Jobs need to
+                       know this because they persist themselves
+
+            queue: Job queue for sharing jobs with workers. Jobs need to know
+                   this because they enqueue themselves
+
+            keepalive: optional keepalive that the job can call to indicate
+                       that it's still alive
 
             jobType: jobClass.JOB_TYPE, or None if the jobType should be
                      gleaned from the input data
@@ -81,15 +79,13 @@ class JobRegistry(object):
 
         if jobClass:
             loaded = jobClass.SCHEMA().load(data)
-            job = jobClass(
-                self.datastore, self.queue, self.keepalive, **loaded
-            )
+            job = jobClass(datastore, queue, keepalive, **loaded)
             return job
 
         else:
             return None
 
-    def get_job(self, uuid):
+    def get_job(self, uuid, datastore, queue, keepalive):
         """
         Creates an instance of a job from a job record saved in the
         datastore.
@@ -97,10 +93,19 @@ class JobRegistry(object):
         Args:
             uuid: uuid of the job, which allows it to be uniquely
                   identified in the datastore
+
+            datastore: Datastore object for persisting jobs. Jobs need to
+                       know this because they persist themselves
+
+            queue: Job queue for sharing jobs with workers. Jobs need to know
+                   this because they enqueue themselves
+
+            keepalive: optional keepalive that the job can call to indicate
+                       that it's still alive
         """
-        data, cas = self.datastore.read_with_cas(make_key(uuid))
+        data, cas = datastore.read_with_cas(make_key(uuid))
         if data:
             data['cas'] = cas
-            return self.make_job(data)
+            return self.make_job(data, datastore, queue, keepalive)
         else:
             return None
