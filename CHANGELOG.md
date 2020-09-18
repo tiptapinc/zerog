@@ -1,3 +1,6 @@
+## v0.0.15
+* retry on couchbase timeouts
+
 ## v0.0.14
 * Changed datastore & queue __init__ arguments to 'makeDatastore' and
   'makeQueue', which allows instantiation of datastore & queue objects
