@@ -1,3 +1,20 @@
+## v0.0.14
+* Changed datastore & queue __init__ arguments to 'makeDatastore' and
+  'makeQueue', which allows instantiation of datastore & queue objects
+  in server & worker contexts
+* Add Server.make_job, Server.get_job, and BaseWorker.get_job methods.
+  Direct use of Registry.make_job and Registry.get_job is deprecated.
+* Improve Server<->Worker messaging
+* Add Server.stop_worker_polling, Server.start_worker_polling, and
+  Server.stop_worker methods which all pass messages to the worker
+* Recognize missing or zombie worker and restart
+* Track runningJobUuid and add an error message to the running job if
+  its execution was interrupted by something that caused a zombie or
+  missing worker
+
+## v0.0.13
+* change datastore & queue args to makeDatastore & makeQueue
+
 ## v0.0.12
 * allow connection kwargs when creating CouchbaseDatastore
 		- operation_timeout

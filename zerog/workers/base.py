@@ -5,6 +5,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
 import couchbase.exceptions
+import psutil
 
 import json
 import os
@@ -30,22 +31,29 @@ class BaseWorker(object):
     Communicate with the parent via a multiprocessing Pipe
 
     Args:
-        datastore: Datastore object for persisting jobs.
+        makeDatastore: function to create a Datastore object that can be
+                       used to persist & retrieve jobs.
 
         registry: JobRegistry object that maps job types to job classes
 
-        queue: Queue for sharing jobs with workers
+        makeQueue: function to create a Queue object to retrieve and
+                   re-post jobs
 
         conn: connection object created by multiprocessing.Pipe()
               Used to communicate with parent.
     """
-    def __init__(self, datastore, queue, registry, conn, **kwargs):
-        self.datastore = datastore
+    def __init__(
+        self, name, makeDatastore, makeQueue, registry, conn, **kwargs
+    ):
+        self.name = name
+        self.makeDatastore = makeDatastore
         self.registry = registry
-        self.queue = queue
+        self.makeQueue = makeQueue
         self.conn = conn
-
         self.parentPid = os.getpid()
+
+    def get_job(self, uuid):
+        return self.registry.get_job(uuid, self.datastore, self.queue, None)
 
     def run(self):
         """
@@ -55,10 +63,16 @@ class BaseWorker(object):
             - Polls job queue
             - Runs jobs
         """
-        log.debug("starting worker.run()")
-
+        self.datastore = self.makeDatastore()
+        self.queue = self.makeQueue("{0}_jobs".format(self.name))
+        self.pid = psutil.Process().pid
         self.runningJobs = True
-        self.conn.send("READY")
+        self.conn.send(json.dumps(dict(type="ready", value=True)))
+        log.info(
+            "starting {0} worker {1}".format(
+                self.name, self.pid
+            )
+        )
 
         while True:
             # check if parent has sent a message
@@ -67,28 +81,49 @@ class BaseWorker(object):
             # rate at which the job queue is polled
             if self.conn.poll(POLL_INTERVAL) is True:
                 msg = self.conn.recv().lower()
-                if msg == "stop polling":
-                    log.debug("received message: %s" % msg)
-                    self.runningJobs = False
-                elif msg == "start polling":
-                    log.debug("received message: %s" % msg)
-                    self.runningJobs = True
-                elif msg == "die":
-                    log.debug("received message: %s" % msg)
-                    return
+                if msg:
+                    log.info(
+                        "worker {0} received message: {1}".format(
+                            self.pid, msg
+                        )
+                    )
+                    if msg == "stop polling":
+                        log.info(
+                            "worker {0} stop running jobs".format(
+                                self.pid
+                            )
+                        )
+                        self.runningJobs = False
+
+                    elif msg == "start polling":
+                        log.info(
+                            "worker {0} start running jobs".format(
+                                self.pid
+                            )
+                        )
+                        self.runningJobs = True
+
+                    elif msg == "die":
+                        log.info(
+                            "worker {0} stopping".format(
+                                self.pid
+                            )
+                        )
+                        return
 
             # check if there is a job available in the job queue. Try to
             # run the job if so.
             #
             # catch DEADLINE_SOON exception here or in queue object?
-            queueJob = self.queue.reserve(timeout=0)
-            if queueJob:
-                log.debug("running job: %s" % queueJob.body)
-                self._process_queue_job(queueJob)
+            if self.runningJobs:
+                queueJob = self.queue.reserve(timeout=0)
+                if queueJob:
+                    self._process_queue_job(queueJob)
 
             # check if parent is still alive. Suicide if not.
             if self._check_parent() is False:
-                break
+                log.info("worker {0} orphaned".format(self.pid))
+                return
 
     def _check_parent(self):
         # Return True if parent is still alive, False if not
@@ -117,26 +152,35 @@ class BaseWorker(object):
         uuid = json.loads(queueJob.body)
         stats = queueJob.stats()
 
-        log.debug("job %s queue stats: %s" % (uuid, stats))
-
+        log.info(
+            "worker {0} reserved job {1} queue stats: {2}".format(
+                self.pid, uuid, stats
+            )
+        )
         try:
             job = None
-            job = self.registry.get_job(uuid)
+            job = self.get_job(uuid)
 
             # if job failed to load, release the queueJob back to the queue
             # and return to the main loop.
             if job is None:
-                log.debug("failed to load job %s. Releasing queueJob" % uuid)
+                log.error(
+                    "worker {0} failed to load {1}. Release to queue".format(
+                        self.pid, uuid
+                    )
+                )
                 queueJob.release(delay=10)
                 return
-
-            log.debug("loaded job: %s" % job)
 
             # if job has been retried too many times, return to main loop
             # without trying to run it. The job has been deleted from the
             # queue if _manage_retries returns True
             if self._manage_retries(queueJob, stats, job):
-                log.debug("job %s too many retries. Deleted queueJob" % uuid)
+                log.error(
+                    "worker {0}, {1} excess retries. Delete from queue".format(
+                        self.pid, uuid
+                    )
+                )
                 return
 
             # run the job by calling its run method
@@ -148,7 +192,25 @@ class BaseWorker(object):
             # Not sure if it's wise to do so, we also try to handle bad return
             # values by converting to defaults:
             #
+            self.conn.send(
+                json.dumps(dict(type="runningJobUuid", value=uuid))
+            )
+            log.info(
+                "worker {0} running job {1}".format(
+                    self.pid, uuid
+                )
+            )
+
             returnVal = job.run()
+            log.info(
+                "worker {0} job {1}, returned {2}".format(
+                    self.pid, uuid, returnVal
+                )
+            )
+            self.conn.send(
+                json.dumps(dict(type="runningJobUuid", value=""))
+            )
+
             if isinstance(returnVal, (tuple, list)):
                 # return value is a tuple, as expected, or we can accept
                 # [resultCode, delay] as well
@@ -176,9 +238,6 @@ class BaseWorker(object):
             if resultCode == zerog.jobs.NO_RESULT:
                 job.enqueue(delay=delay)
             else:
-                log.info(
-                    "job %s completed. resultCode: %s" % (uuid, resultCode)
-                )
                 job.record_result(resultCode)
 
             return
@@ -194,20 +253,32 @@ class BaseWorker(object):
                 queueJob.release(delay=10)
             return
 
-        except couchbase.exceptions.TimeoutError as e:
+        except couchbase.exceptions.TimeoutError:
             # this is a temporary hack because we're seeing timeout errors
-            log.warning("couchbase timeout error %s" % e)
+            log.error(
+                "worker {0} job {1}, couchbase timeout error".format(
+                    self.pid, uuid
+                )
+            )
+            if job:
+                job.job_log_error(
+                    zerog.jobs.INTERNAL_ERROR, "couchbase timeout"
+                )
+
             queueJob.release(delay=10)
 
         except:
             # unknown exception occurred while job was running. Record it
             # and potentially release the job back to the queue for another
             # try
+            msg = traceback.format_exc()
             if job:
-                job.job_log_error(
-                    zerog.jobs.INTERNAL_ERROR,
-                    traceback.format_exc()
+                job.job_log_error(zerog.jobs.INTERNAL_ERROR, msg)
+                msg += "server {0} jobType {1} job {2}".format(
+                    self.pid, job.JOB_TYPE, job.uuid
                 )
+
+            log.error(msg)
 
             if self._manage_retries(queueJob, stats, job) is False:
                 queueJob.release(delay=10)

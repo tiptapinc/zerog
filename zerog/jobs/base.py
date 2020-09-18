@@ -12,6 +12,7 @@ Copyright (c) 2017 MotiveMetrics. All rights reserved.
 
 from abc import ABC, abstractmethod
 import datetime
+import psutil
 import random
 import time
 import uuid
@@ -180,15 +181,27 @@ class BaseJob(ABC):
                 return True
 
             except self.datastore.casException:
-                log.info("%s: datastore collision - reloading." % self.logId)
+                log.info(
+                    "pid {0}, uuid {1} collision - reloading.".format(
+                        psutil.Process().pid, self.uuid
+                    )
+                )
 
             except self.datastore.lockedException:
-                log.info("%s: locked - reloading." % self.logId)
+                log.info(
+                    "pid {0}, uuid {1} locked - reloading.".format(
+                        psutil.Process().pid, self.uuid
+                    )
+                )
 
             time.sleep(random.random() / 10)
             self.reload()
 
-        log.error("%s: save failed - too many tries" % self.logId)
+        log.error(
+            "pid {0}, uuid {1} save failed - too many collisions".format(
+                psutil.Process().pid, self.uuid
+            )
+        )
         return False
 
     def update_attrs(self, **kwargs):

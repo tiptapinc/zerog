@@ -33,7 +33,7 @@ class RunJobHandler(BaseHandler):
             "creating ZeroG Job of type:%s, from data\n%s" %
             (jobType, json.dumps(data, indent=4))
         )
-        job = self.registry.make_job(data, jobType)
+        job = self.application.make_job(data, jobType)
 
         if job:
             job.enqueue()
