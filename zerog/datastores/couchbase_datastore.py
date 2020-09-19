@@ -26,18 +26,17 @@ def retry_on_timeouts(func):
         while True:
             try:
                 return func(*args, **kwargs)
-            except couchbase.exceptions.TimeoutError:
-                pass
 
-            tries += 1
-            if tries == 3:
-                raise couchbase.exceptions.TimeoutError
-
-            log.info(
-                "couchbase timeout in process {0} -- retrying".format(
-                    psutil.Process().pid
+            except couchbase.exceptions.TimeoutError as e:
+                tries += 1
+                if tries > 3:
+                    raise e
+                log.info(
+                    "couchbase timeout in process {0} -- retrying #{1}".format(
+                        psutil.Process().pid, tries
+                    )
                 )
-            )
+
     return wrapper
 
 
