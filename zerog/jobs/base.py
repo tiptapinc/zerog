@@ -359,6 +359,11 @@ class BaseJob(ABC):
             warnings=[w.dump() for w in self.warnings]
         )
 
+    def get_data(self):
+        # override this method to return output data for the completed job
+        #
+        return {}
+
     @abstractmethod
     def run(self):
         # override this method to execute the job. It is called by

@@ -4,6 +4,7 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
+from abc import abstractmethod
 import json
 from tornado.web import HTTPError
 
@@ -15,7 +16,7 @@ log = logging.getLogger(__name__)
 UUID_PATT = "(?P<uuid>[^/]+)"           # kwarg == "uuid"
 
 
-class ProgressHandler(BaseHandler):
+class UuidHandler(BaseHandler):
     def get(self, *args, **kwargs):
         """
             Args:
@@ -26,9 +27,13 @@ class ProgressHandler(BaseHandler):
         job = self.application.get_job(uuid)
 
         if job:
-            self.complete(200, output=json.dumps(job.progress(), indent=4))
+            self.do_get(job)
         else:
             raise HTTPError(404, "Could not find job %s" % uuid)
+
+    @abstractmethod
+    def do_get(self, job):
+        pass
 
     def derive_uuid(self, *args, **kwargs):
         """
@@ -51,5 +56,17 @@ class ProgressHandler(BaseHandler):
                 return uuid
             else:
                 raise HTTPError(
-                    400, "ProgressHandler.get needs 'uuid' argument"
+                    400, "{0}.get needs 'uuid' argument".format(
+                        self.__class__.__name__
+                    )
                 )
+
+
+class ProgressHandler(UuidHandler):
+    def do_get(self, job):
+        self.complete(200, output=json.dumps(job.progress(), indent=4))
+
+
+class GetDataHandler(UuidHandler):
+    def do_get(self, job):
+        self.complete(200, output=json.dumps(job.get_data(), indent=4))
