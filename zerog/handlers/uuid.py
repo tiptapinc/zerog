@@ -64,9 +64,13 @@ class UuidHandler(BaseHandler):
 
 class ProgressHandler(UuidHandler):
     def do_get(self, job):
-        self.complete(200, output=json.dumps(job.progress(), indent=4))
+        self.complete(200, output=json.dumps(
+            job.progress(), indent=4, allow_nan=False)
+        )
 
 
 class GetDataHandler(UuidHandler):
     def do_get(self, job):
-        self.complete(200, output=json.dumps(job.get_data(), indent=4))
+        self.complete(200, output=json.dumps(
+            job.get_data(), indent=4, allow_nan=False)
+        )
