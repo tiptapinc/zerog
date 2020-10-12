@@ -1,3 +1,11 @@
+## v0.0.17
+* rename data method to get_data
+* set allow_nan=False when json dumping progress and get_data output
+
+## v0.0.16
+* add support for 'data' method so results don't need to be returned
+  by the 'progress' method
+
 ## v0.0.15
 * retry on couchbase timeouts
 

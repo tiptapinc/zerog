@@ -1,3 +1,3 @@
 from .base import BaseHandler
-from .progress import ProgressHandler
+from .uuid import ProgressHandler, GetDataHandler
 from .run_job import RunJobHandler
