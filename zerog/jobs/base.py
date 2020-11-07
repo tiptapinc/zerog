@@ -244,8 +244,6 @@ class BaseJob(ABC):
         """
         Makes and records an error associated with this job.
 
-        Assumes that the job will be restarted by the error.
-
         exception kwarg is passed by the worker if the error is the
         result of an unhandled exception. Jobs may want to override
         this method to handle certain exceptions specially.
