@@ -247,7 +247,7 @@ class BaseWorker(object):
         except zerog.jobs.ErrorContinue:
             # Error has been recorded. Job will restart.
             job.record_event("Error - restarting")
-            resultCode = zerog.jobs.NO_RESULT
+            resultCode = job.continue_running()
             delay = 30
 
         except couchbase.exceptions.TimeoutError:
