@@ -1,3 +1,6 @@
+## v0.0.18
+* changes to handle system restarts better
+
 ## v0.0.17
 * rename data method to get_data
 * set allow_nan=False when json dumping progress and get_data output

@@ -71,6 +71,7 @@ class BaseJobSchema(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
     warnings = fields.List(fields.Nested(WarningSchema))
 
+    errorCount = fields.Integer()
     completeness = fields.Float()
     tickcount = fields.Float()
     tickval = fields.Float()
@@ -94,6 +95,8 @@ class BaseJob(ABC):
 
     JOB_TYPE = OVERRIDE_SIGNATURE
     SCHEMA = OVERRIDE_SIGNATURE
+
+    MAX_ERRORS = 3
 
     def __init__(self, datastore, queue, keepalive=None, **kwargs):
         self.datastore = datastore
@@ -123,6 +126,7 @@ class BaseJob(ABC):
         self.errors = kwargs.get('errors', [])
         self.warnings = kwargs.get('warnings', [])
 
+        self.errorCount = kwargs.get('errorCount', 0)
         self.completeness = kwargs.get('completeness', 0)
         self.tickcount = kwargs.get('tickcount', 0.0)
         self.tickval = kwargs.get('tickval', 0.001)
@@ -236,9 +240,13 @@ class BaseJob(ABC):
 
         self.record_change(do_record_warning)
 
-    def record_error(self, errorCode, msg):
+    def record_error(self, errorCode, msg, exception=None):
         """
         Makes and records an error associated with this job.
+
+        exception kwarg is passed by the worker if the error is the
+        result of an unhandled exception. Jobs may want to override
+        this method to handle certain exceptions specially.
         """
         error = make_error(errorCode, msg)
 
@@ -246,6 +254,7 @@ class BaseJob(ABC):
             self.errors.append(error)
 
         self.record_change(do_record_error)
+        self.update_attrs(errorCount=self.errorCount + 1)
 
     def record_result(self, resultCode):
         """
@@ -363,6 +372,24 @@ class BaseJob(ABC):
         # override this method to return output data for the completed job
         #
         return {}
+
+    def continue_running(self):
+        """
+        called by the worker after a job is interrupted by an exception
+
+         - returns NO_RESULT if the job should continue running
+
+         - returns INTERNAL_ERROR if the job should terminate
+
+        The default is to terminate after self.MAX_ERRORs errors have
+        been recorded.
+
+        Override this method as needed for more complex error handling
+        """
+        if self.errorCount >= self.MAX_ERRORS:
+            return INTERNAL_ERROR
+
+        return NO_RESULT
 
     @abstractmethod
     def run(self):

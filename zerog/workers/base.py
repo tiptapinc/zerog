@@ -45,6 +45,7 @@ class BaseWorker(object):
     def __init__(
         self, name, makeDatastore, makeQueue, registry, conn, **kwargs
     ):
+        log.info("created worker, self: {0}".format(self))
         self.name = name
         self.makeDatastore = makeDatastore
         self.registry = registry
@@ -149,68 +150,68 @@ class BaseWorker(object):
         #
         # body of the queue job is just a uuid that we can use to retrieve
         # the full job
+        log.info("process_queue_job, self: {0}".format(self))
         uuid = json.loads(queueJob.body)
-        stats = queueJob.stats()
+        log.info("worker {0} reserved job {1}".format(self.pid, uuid))
 
-        log.info(
-            "worker {0} reserved job {1} queue stats: {2}".format(
+        job = None
+        try:
+            job = self.get_job(uuid)
+        except BaseException:
+            msg = traceback.format_exc()
+        else:
+            msg = ""
+
+        if job is None:
+            # either job wasn't found or there was an exception while
+            # loading it
+            stats = queueJob.stats()
+            msg += "worker {0} failed to load {1}, queue stats: {2}".format(
                 self.pid, uuid, stats
             )
-        )
+            delete = False
+
+            if stats['reserves'] > MAX_RESERVES:
+                delete = True
+                tooMany = "{0} reserves".format(MAX_RESERVES)
+            elif stats['timeouts'] > MAX_TIMEOUTS:
+                delete = True
+                tooMany = "{0} timeouts".format(MAX_TIMEOUTS)
+
+            if delete:
+                msg = "more than {0}, deleting from queue".format(tooMany)
+                log.error("worker {0}, job {1}: {2}".format(
+                    self.pid, uuid, msg)
+                )
+                queueJob.delete()
+            else:
+                queueJob.release(delay=30)
+
+            return
+
         try:
-            job = None
-            job = self.get_job(uuid)
-
-            # if job failed to load, release the queueJob back to the queue
-            # and return to the main loop.
-            if job is None:
-                log.error(
-                    "worker {0} failed to load {1}. Release to queue".format(
-                        self.pid, uuid
-                    )
-                )
-                queueJob.release(delay=10)
-                return
-
-            # if job has been retried too many times, return to main loop
-            # without trying to run it. The job has been deleted from the
-            # queue if _manage_retries returns True
-            if self._manage_retries(queueJob, stats, job):
-                log.error(
-                    "worker {0}, {1} excess retries. Delete from queue".format(
-                        self.pid, uuid
-                    )
-                )
-                return
-
             # run the job by calling its run method
             #
             # The run method should return a (resultCode, delay) tuple, and
             # if the resultCode == NO_RESULT, then the job is requeued with
             # the returned delay
             #
-            # Not sure if it's wise to do so, we also try to handle bad return
-            # values by converting to defaults:
+            # Not sure if it's wise to do so, but we also try to handle bad
+            # return values by converting to defaults:
             #
+            log.info(
+                "worker {0} running job {1}".format(self.pid, uuid)
+            )
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=uuid))
             )
-            log.info(
-                "worker {0} running job {1}".format(
-                    self.pid, uuid
-                )
-            )
-
             returnVal = job.run()
+
             log.info(
                 "worker {0} job {1}, returned {2}".format(
                     self.pid, uuid, returnVal
                 )
             )
-            self.conn.send(
-                json.dumps(dict(type="runningJobUuid", value=""))
-            )
-
             if isinstance(returnVal, (tuple, list)):
                 # return value is a tuple, as expected, or we can accept
                 # [resultCode, delay] as well
@@ -231,27 +232,23 @@ class BaseWorker(object):
                 except (ValueError, TypeError):
                     resultCode = 200
 
-            # delete the queueJob now that the actual job has completed
-            queueJob.delete()
-
-            # if the job asked to be requeued, requeue it with a delay
-            if resultCode == zerog.jobs.NO_RESULT:
-                job.enqueue(delay=delay)
-            else:
-                job.record_result(resultCode)
-
-            return
-
         except (zerog.jobs.ErrorFinish, zerog.jobs.WarningFinish):
             # error has already been recorded and job is done
+            job.record_event("Error - finished")
             queueJob.delete()
             return
 
+        except SystemExit:
+            # This will be captured and logged. Job will restart with
+            # impact on error-handling
+            resultCode = zerog.jobs.NO_RESULT
+            delay = 30
+
         except zerog.jobs.ErrorContinue:
-            # error has been recorded, but job can be tried again
-            if self._manage_retries(queueJob, stats, job) is False:
-                queueJob.release(delay=10)
-            return
+            # Error has been recorded. Job will restart.
+            job.record_event("Error - restarting")
+            resultCode = job.continue_running()
+            delay = 30
 
         except couchbase.exceptions.TimeoutError:
             # this is a temporary hack because we're seeing timeout errors
@@ -260,66 +257,34 @@ class BaseWorker(object):
                     self.pid, uuid
                 )
             )
-            if job:
-                job.job_log_error(
-                    zerog.jobs.INTERNAL_ERROR, "couchbase timeout"
-                )
+            resultCode = zerog.jobs.NO_RESULT
+            delay = 30
 
-            queueJob.release(delay=10)
-
-        except:
+        except BaseException as e:
             # unknown exception occurred while job was running. Record it
             # and potentially release the job back to the queue for another
             # try
             msg = traceback.format_exc()
-            if job:
-                job.job_log_error(zerog.jobs.INTERNAL_ERROR, msg)
-                msg += "server {0} jobType {1} job {2}".format(
-                    self.pid, job.JOB_TYPE, job.uuid
-                )
-
+            job.record_error(zerog.jobs.INTERNAL_ERROR, msg, exception=e)
+            msg += "server {0} jobType {1} job {2}".format(
+                self.pid, job.JOB_TYPE, job.uuid
+            )
             log.error(msg)
 
-            if self._manage_retries(queueJob, stats, job) is False:
-                queueJob.release(delay=10)
-
-    def _manage_retries(self, queueJob, stats, job):
-        # Check the queue stats for a queueJob and decide if it's had enough
-        # retries
-        #
-        # Args:
-        #   queueJob: queue job object. Currently it is a beanstalkc.Job
-        #   stats: dictionary of queue statistics for the queueJob
-        #   job: ZeroG Job object
-        #
-        # Return True
-        #     if the queueJob was deleted from the queue for too many reserves
-        #     or too many timeouts
-
-        # Return False
-        #     if the job was not deleted
-        delete = False
-
-        if stats['reserves'] > MAX_RESERVES:
-            delete = True
-            tooMany = "%s reserves" % MAX_RESERVES
-
-        elif stats['timeouts'] > MAX_TIMEOUTS:
-            delete = True
-            tooMany = "%s timeouts" % MAX_TIMEOUTS
-
-        if delete:
-            queueJob.delete()
-            msg = "more than %s, deleting from queue" % tooMany
-
-            if job:
-                errorCode = zerog.jobs.INTERNAL_ERROR
-                job.job_log_error(errorCode, msg)
-                job.record_result(errorCode)
+            resultCode = job.continue_running()
+            if resultCode == zerog.jobs.NO_RESULT:
+                job.record_event("Error - restarting")
+                delay = 30
             else:
-                log.error(msg)
+                job.record_event("Error - finished")
 
-            return True
+        finally:
+            self.conn.send(
+                json.dumps(dict(type="runningJobUuid", value=""))
+            )
 
+        queueJob.delete()
+        if resultCode == zerog.jobs.NO_RESULT:
+            job.enqueue(delay=delay)
         else:
-            return False
+            job.record_result(resultCode)

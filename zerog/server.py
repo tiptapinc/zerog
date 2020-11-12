@@ -116,9 +116,15 @@ class Server(tornado.web.Application):
         )
 
     def kill_worker(self):
+        self.do_worker_poll()
+
+        if self.runningJobUuid:
+            job = self.get_job(self.runningJobUuid)
+            job.record_event("System restart")
+
         log.info(
-            "server {0}: killing worker {1}".format(
-                self.pid, self.proc.pid
+            "server {0} killing worker {1}, activeJob: {2}".format(
+                self.pid, self.proc.pid, self.runningJobUuid
             )
         )
         self.proc.kill()
@@ -162,6 +168,12 @@ class Server(tornado.web.Application):
             self.runningJobUuid = msg['value']
 
     def worker_poll(self):
+        self.do_worker_poll()
+        tornado.ioloop.IOLoop.instance().call_later(
+            POLL_INTERVAL, self.worker_poll
+        )
+
+    def do_worker_poll(self):
         while self.parentConn.poll() is True:
             text = self.parentConn.recv()
             try:
@@ -218,7 +230,3 @@ class Server(tornado.web.Application):
                 self.start_worker()
 
             self.workerStatus = workerStatus
-
-        tornado.ioloop.IOLoop.instance().call_later(
-            POLL_INTERVAL, self.worker_poll
-        )
