@@ -26,7 +26,7 @@ from .warning import WarningSchema, make_warning
 import logging
 log = logging.getLogger(__name__)
 
-DEFAULT_TTR = 3600 * 24   # long because broken workers are killed
+DEFAULT_TTR = 3600 * 24 * 30   # should never happen. When it does it's bad
 
 # result codes
 INTERNAL_ERROR = 500

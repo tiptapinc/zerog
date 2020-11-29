@@ -1,3 +1,6 @@
+## v0.0.19
+* change default queue TTR to 30 days
+
 ## v0.0.18
 * changes to handle system restarts better
 
