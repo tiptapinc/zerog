@@ -30,26 +30,33 @@ class Server(tornado.web.Application):
     Application class
 
     Args:
-        name: name for this zerog server
+        name: service name for this zerog server
         makeDatastore: function to create a Datastore object that can be
                        used to persist & retrieve jobs.
 
         makeQueue: function to create Queue objects for posting jobs & for
                    inter-server communications
 
-        ctrlQueue: Queue for sharing control information among servers
-
         jobClasses: List of job classes (derived from BaseClass) that
                     this ZeroG instance will support. Additional job
                     classes can be added later with the add_to_registry
                     method
 
-        *args: passed to parent __init__ method
+        thisHost: host IP address or hostname
+
+        handlers: request handlers to be passed to parent __init__ method
 
         **kwargs: passed to parent __init__method
     """
     def __init__(
-        self, name, makeDatastore, makeQueue, jobClasses, handlers=[], **kwargs
+        self,
+        name,
+        makeDatastore,
+        makeQueue,
+        jobClasses,
+        thisHost='localhost',
+        handlers=[],
+        **kwargs
     ):
         self.workerStatus = ""
         self.pid = psutil.Process().pid
@@ -60,7 +67,10 @@ class Server(tornado.web.Application):
         self.name = name
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
-        self.ctrlQueue = makeQueue("{0}_ctrl".format(self.name))
+        self.updatesQueue = makeQueue("zerog_updates")
+        self.thisHost = thisHost
+
+        self.make_worker_id()
 
         self.registry = zerog.registry.JobRegistry()
         self.registry.add_classes(jobClasses)
@@ -71,6 +81,9 @@ class Server(tornado.web.Application):
         handlers += HANDLERS
         super(Server, self).__init__(handlers, **kwargs)
 
+    def make_worker_id(self):
+        self.workerId = f"zerog#{self.thisHost}#{self.name}#{self.pid}"
+
     def make_job(self, data, jobType):
         return self.registry.make_job(
             data, self.datastore, self.jobQueue, None, jobType=jobType
@@ -80,6 +93,13 @@ class Server(tornado.web.Application):
         return self.registry.get_job(
             uuid, self.datastore, self.jobQueue, None
         )
+
+    def enqueue_update_message(self, msg):
+        fullmsg = dict(
+            workerId=self.workerId,
+            msg=msg
+        )
+        self.updatesQueue.put(json.dumps(fullmsg))
 
     def exit_handler(self):
         """
@@ -114,6 +134,7 @@ class Server(tornado.web.Application):
                 self.pid, self.proc.pid
             )
         )
+        self.enqueue_update_message("started")
 
     def kill_worker(self):
         self.do_worker_poll()
@@ -127,6 +148,7 @@ class Server(tornado.web.Application):
                 self.pid, self.proc.pid, self.runningJobUuid
             )
         )
+        self.enqueue_update_message("killed")
         self.proc.kill()
 
     def stop_worker_polling(self):
@@ -135,6 +157,7 @@ class Server(tornado.web.Application):
                 self.pid, self.proc.pid
             )
         )
+        self.enqueue_update_message("stop polling")
         self.parentConn.send("stop polling")
 
     def start_worker_polling(self):
@@ -143,6 +166,7 @@ class Server(tornado.web.Application):
                 self.pid, self.proc.pid
             )
         )
+        self.enqueue_update_message("start polling")
         self.parentConn.send("start polling")
 
     def stop_worker(self):
@@ -153,6 +177,7 @@ class Server(tornado.web.Application):
                 self.pid, self.proc.pid, self.proc.exitcode
             )
         )
+        self.enqueue_update_message("stopped")
 
     def process_worker_message(self, msg):
         msgType = msg.get('type')
@@ -166,6 +191,8 @@ class Server(tornado.web.Application):
 
         if msgType == 'runningJobUuid':
             self.runningJobUuid = msg['value']
+
+        self.enqueue_update_message(msg)
 
     def worker_poll(self):
         self.do_worker_poll()
