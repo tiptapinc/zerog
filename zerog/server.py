@@ -54,8 +54,8 @@ class Server(tornado.web.Application):
         makeDatastore,
         makeQueue,
         jobClasses,
-        thisHost='localhost',
         handlers=[],
+        thisHost='localhost',
         **kwargs
     ):
         self.workerStatus = ""
