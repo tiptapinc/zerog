@@ -1,3 +1,8 @@
+## v0.0.20
+* make Dockerfile & docker-compose file for testing
+* fix tests
+* add support for queue-based management
+
 ## v0.0.19
 * change default queue TTR to 30 days
 

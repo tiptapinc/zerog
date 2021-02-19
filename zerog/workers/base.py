@@ -16,7 +16,7 @@ import zerog.jobs
 import logging
 log = logging.getLogger(__name__)
 
-MAX_TIMEOUTS = 3
+MAX_TIMEOUTS = 2
 MAX_RESERVES = 3
 
 POLL_INTERVAL = 2
@@ -31,6 +31,8 @@ class BaseWorker(object):
     Communicate with the parent via a multiprocessing Pipe
 
     Args:
+        name: name of the service
+
         makeDatastore: function to create a Datastore object that can be
                        used to persist & retrieve jobs.
 
@@ -64,17 +66,29 @@ class BaseWorker(object):
             - Polls job queue
             - Runs jobs
         """
-        self.datastore = self.makeDatastore()
-        self.queue = self.makeQueue("{0}_jobs".format(self.name))
-        self.pid = psutil.Process().pid
-        self.runningJobs = True
+        self.run_init()
         self.conn.send(json.dumps(dict(type="ready", value=True)))
         log.info(
             "starting {0} worker {1}".format(
                 self.name, self.pid
             )
         )
+        self.run_loop()
 
+    def run_init(self):
+        """
+        sets attributes that need to be initialized in the child process
+        context
+        """
+        self.datastore = self.makeDatastore()
+        self.queue = self.makeQueue("{0}_jobs".format(self.name))
+        self.pid = psutil.Process().pid
+        self.runningJobs = True
+
+    def run_loop(self):
+        """
+        runs the worker's main event loop
+        """
         while True:
             # check if parent has sent a message
             #

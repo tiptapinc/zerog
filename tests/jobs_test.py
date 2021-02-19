@@ -19,9 +19,9 @@ def test_good_job_is_good(make_good_job):
     assert job.run() == (200, None)
 
 
-def test_no_run_job_is_bad():
+def test_no_run_job_is_bad(datastore, jobs_queue):
     with pytest.raises(TypeError):
-        NoRunJob(MockDatastore(), MockQueue())
+        NoRunJob(datastore, jobs_queue)
 
 
 @pytest.mark.skip(reason="__init_subclass check removed - need runtime check")
@@ -36,65 +36,65 @@ def test_no_schema_job_is_bad():
         importlib.import_module(".no_schema_job", "zerog.tests")
 
 
-def test_no_save(make_good_job):
+def test_no_save(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert job2 is None
 
 
-def test_save(make_good_job):
+def test_save(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.save()
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert job2 is not None
     assert job.uuid == job2.uuid
 
 
-def test_save_change_save(make_good_job):
+def test_save_change_save(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.resultCode = 200
     job.save()
-    job = registry.get_job(job.uuid)
+    job = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert job.resultCode == 200
 
 
-def test_update_attrs(make_good_job):
+def test_update_attrs(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.update_attrs(resultCode=200)
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert job2 is not None
     assert job2.resultCode == 200
 
 
-def test_save_collision_fails(make_good_job):
+def test_save_collision_fails(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.save()
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
     job.update_attrs(resultCode=200)
 
-    with pytest.raises(MockDatastore.casException):
+    with pytest.raises(datastore.casException):
         job2.save()
 
 
-def test_update_attrs_collision_succeeds(make_good_job):
+def test_update_attrs_collision_succeeds(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.save()
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
     job.update_attrs(resultCode=200)
     job2.update_attrs(resultCode=218)
-    job = registry.get_job(job.uuid)
+    job = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert job.resultCode == 218
 
 
-def test_reload(make_good_job):
+def test_reload(make_good_job, datastore, jobs_queue):
     job, registry = make_good_job
     job.save()
-    job2 = registry.get_job(job.uuid)
+    job2 = registry.get_job(job.uuid, datastore, jobs_queue)
     job.update_attrs(resultCode=200)
 
     assert job2.resultCode == -1

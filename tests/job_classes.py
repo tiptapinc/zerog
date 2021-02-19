@@ -87,7 +87,7 @@ class ReturnBadStringJob(BaseJob):
 
 
 class ReturnDictJob(BaseJob):
-    JOB_TYPE = "return_bad_string_test_job"
+    JOB_TYPE = "return_dict_test_job"
     SCHEMA = BaseJobSchema
 
     def run(self):

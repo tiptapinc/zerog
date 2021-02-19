@@ -13,8 +13,8 @@ import signal
 import tornado.web
 import tornado.ioloop
 
-import zerog.registry
-import zerog.workers
+import zerog
+import zerog.mgmt
 
 import logging
 log = logging.getLogger(__name__)
@@ -58,21 +58,23 @@ class Server(tornado.web.Application):
         thisHost='localhost',
         **kwargs
     ):
-        self.workerStatus = ""
         self.pid = psutil.Process().pid
-        self.runningJobUuid = ""
-
         log.info("initializing ZeroG server {0}".format(self.pid))
 
+        self.workerStatus = ""
+        self.runningJobUuid = ""
         self.name = name
+        self.thisHost = thisHost
+        self.workerId = zerog.mgmt.make_worker_id(
+            "zerog", thisHost, name, self.pid
+        )
+
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
         self.updatesQueue = makeQueue("zerog_updates")
-        self.thisHost = thisHost
+        self.controlQueue = makeQueue(self.workerId)
 
-        self.make_worker_id()
-
-        self.registry = zerog.registry.JobRegistry()
+        self.registry = zerog.JobRegistry()
         self.registry.add_classes(jobClasses)
 
         self.make_worker(makeDatastore, makeQueue)
@@ -81,8 +83,8 @@ class Server(tornado.web.Application):
         handlers += HANDLERS
         super(Server, self).__init__(handlers, **kwargs)
 
-    def make_worker_id(self):
-        self.workerId = f"zerog#{self.thisHost}#{self.name}#{self.pid}"
+    def get_worker_id(self):
+        return f"zerog#{self.thisHost}#{self.name}#{self.pid}"
 
     def make_job(self, data, jobType):
         return self.registry.make_job(
@@ -101,6 +103,18 @@ class Server(tornado.web.Application):
         )
         self.updatesQueue.put(json.dumps(fullmsg))
 
+    def process_control_msg(self, controlMsg):
+        pass
+
+    def poll_control_queue(self):
+        controlMsg = self.controlQueue.reserve(timeout=0)
+        if controlMsg:
+            self.process_control_msg(controlMsg)
+
+        tornado.ioloop.IOLoop.instance().call_later(
+            POLL_INTERVAL, self.poll_control_queue
+        )
+
     def exit_handler(self):
         """
         Makes sure worker dies on exit
@@ -115,7 +129,7 @@ class Server(tornado.web.Application):
             )
         )
         self.parentConn, self.childConn = multiprocessing.Pipe()
-        self.worker = zerog.workers.BaseWorker(
+        self.worker = zerog.BaseWorker(
             self.name, makeDatastore, makeQueue, self.registry, self.childConn
         )
         self.start_worker()

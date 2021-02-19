@@ -51,7 +51,7 @@ class JobRegistry(object):
     def get_registered_classes(self):
         return list(self.registry.values())
 
-    def make_job(self, data, datastore, queue, keepalive, jobType=None):
+    def make_job(self, data, datastore, queue, keepalive=None, jobType=None):
         """
         Creates an instance of a job and validates that the data passed
         to instantiate it.
@@ -85,7 +85,7 @@ class JobRegistry(object):
         else:
             return None
 
-    def get_job(self, uuid, datastore, queue, keepalive):
+    def get_job(self, uuid, datastore, queue, keepalive=None):
         """
         Creates an instance of a job from a job record saved in the
         datastore.
