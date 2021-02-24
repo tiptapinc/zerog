@@ -83,7 +83,7 @@ class BaseWorker(object):
         self.datastore = self.makeDatastore()
         self.queue = self.makeQueue("{0}_jobs".format(self.name))
         self.pid = psutil.Process().pid
-        self.runningJobs = True
+        self.draining = False
 
     def run_loop(self):
         """
@@ -96,41 +96,13 @@ class BaseWorker(object):
             # rate at which the job queue is polled
             if self.conn.poll(POLL_INTERVAL) is True:
                 msg = self.conn.recv().lower()
-                if msg:
-                    log.info(
-                        "worker {0} received message: {1}".format(
-                            self.pid, msg
-                        )
-                    )
-                    if msg == "stop polling":
-                        log.info(
-                            "worker {0} stop running jobs".format(
-                                self.pid
-                            )
-                        )
-                        self.runningJobs = False
+                if msg == "drain":
+                    log.info(f"worker {self.pid} start draining")
+                    self.draining = True
 
-                    elif msg == "start polling":
-                        log.info(
-                            "worker {0} start running jobs".format(
-                                self.pid
-                            )
-                        )
-                        self.runningJobs = True
-
-                    elif msg == "die":
-                        log.info(
-                            "worker {0} stopping".format(
-                                self.pid
-                            )
-                        )
-                        return
-
-            # check if there is a job available in the job queue. Try to
-            # run the job if so.
-            #
-            # catch DEADLINE_SOON exception here or in queue object?
-            if self.runningJobs:
+            if not self.draining:
+                # check if there is a job available in the job queue. Try
+                # to run the job if so.
                 queueJob = self.queue.reserve(timeout=0)
                 if queueJob:
                     self._process_queue_job(queueJob)
@@ -219,6 +191,7 @@ class BaseWorker(object):
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=uuid))
             )
+            job.update_attrs(running=True)
             returnVal = job.run()
 
             log.info(
@@ -253,7 +226,7 @@ class BaseWorker(object):
             return
 
         except SystemExit:
-            # This will be captured and logged. Job will restart with
+            # This will be captured and logged. Job will restart with no
             # impact on error-handling
             resultCode = zerog.jobs.NO_RESULT
             delay = 30
@@ -296,6 +269,7 @@ class BaseWorker(object):
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=""))
             )
+            job.update_attrs(running=False)
 
         queueJob.delete()
         if resultCode == zerog.jobs.NO_RESULT:

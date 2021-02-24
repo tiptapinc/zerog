@@ -21,31 +21,32 @@ source (even though this is known from the queue)
 data
 
 """
-from zerog.mgmt.messages import make_msg_from_json
+from zerog.mgmt.messages import make_msg, make_msg_from_json
 
 
 class MgmtChannel(object):
-    def __init__(self, queue, workerId):
+    def __init__(self, queue):
         """
         Args:
             queue: zerog Queue object on which messages will be
                    produced/consumed
-
-            workerId: unique worker identifier
         """
         self.queue = queue
-        self.workerId = workerId
 
-    def send_message(self, msg, **kwargs):
+    def make_msg(self, msgtype, **kwargs):
+        msg = make_msg(msgtype, **kwargs)
+        return msg
+
+    def send_msg(self, msg, **kwargs):
         """
         Args:
             msg: a zerog management message - subclass of messages.BaseMsg
 
             kwargs: keyword arguments passed through to queue's "put" method
         """
-        self.queue.put(msg.dumps(), **kwargs)
+        self.queue.put(msg.dump(), **kwargs)
 
-    def get_message(self, **kwargs):
+    def get_msg(self, **kwargs):
         """
         Args:
             kwargs: keyword arguments passed through to the queue's
@@ -57,12 +58,16 @@ class MgmtChannel(object):
 
             Returned message will be a subclass of messages.BaseMsg
         """
-        queueJob = self.queue.reserve(timeout=0)
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = 0
+
+        queueJob = self.queue.reserve(**kwargs)
         if queueJob:
             # could wrap this in a try:except to catch malformed messages
             # but they really shouldn't be happening so I think it's better
             # to let any exceptions trickle up
             msg = make_msg_from_json(queueJob.body)
+            queueJob.delete()
             return msg
 
         return None
@@ -71,6 +76,9 @@ class MgmtChannel(object):
         """
         attaches this instance to both use the named queue for sends and
         to watch the named queue for gets
+
+        when queues are created, they are automatically attached, so this
+        method is only needed after a detach
         """
         self.queue.attach()
 

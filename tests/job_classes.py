@@ -1,4 +1,5 @@
 from marshmallow import fields
+import time
 
 from zerog.jobs import BaseJob, BaseJobSchema, NO_RESULT
 
@@ -17,6 +18,26 @@ class GoodJob(BaseJob):
         self.goodness = kwargs.get("goodness", "gracious")
 
     def run(self):
+
+        return 200, None
+
+
+class SleepJobSchema(BaseJobSchema):
+    delay = fields.Integer(missing=5)
+
+
+class SleepJob(BaseJob):
+    JOB_TYPE = 'sleep_job'
+    SCHEMA = SleepJobSchema
+
+    def __init__(self, *args, **kwargs):
+        super(SleepJob, self).__init__(*args, **kwargs)
+        self.delay = kwargs.get('delay', 5)
+
+    def run(self):
+        self.job_log_info(f"{self.uuid} sleeping {self.delay} seconds")
+        time.sleep(self.delay)
+        self.job_log_info(f"{self.uuid} done sleeping")
         return 200, None
 
 

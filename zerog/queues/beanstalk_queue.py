@@ -34,6 +34,9 @@ class BeanstalkdQueue(object):
         self.do_bean("use", "default")
         self.do_bean("ignore", self.queueName)
 
+    def delete(self, jid):
+        self.do_bean("delete", jid)
+
     def list_all_queues(self):
         return self.do_bean("tubes")
 

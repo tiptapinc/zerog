@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
@@ -14,7 +13,7 @@ import tornado.web
 import tornado.ioloop
 
 import zerog
-import zerog.mgmt
+from zerog.mgmt import MgmtChannel, make_msg, make_worker_id
 
 import logging
 log = logging.getLogger(__name__)
@@ -61,30 +60,27 @@ class Server(tornado.web.Application):
         self.pid = psutil.Process().pid
         log.info("initializing ZeroG server {0}".format(self.pid))
 
-        self.workerStatus = ""
-        self.runningJobUuid = ""
         self.name = name
         self.thisHost = thisHost
-        self.workerId = zerog.mgmt.make_worker_id(
-            "zerog", thisHost, name, self.pid
-        )
+        self.workerId = make_worker_id("zerog", thisHost, name, self.pid)
 
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
-        self.updatesQueue = makeQueue("zerog_updates")
-        self.controlQueue = makeQueue(self.workerId)
+        self.updatesChannel = MgmtChannel(makeQueue("updates"))
+        self.ctrlChannel = MgmtChannel(makeQueue(self.workerId))
 
         self.registry = zerog.JobRegistry()
         self.registry.add_classes(jobClasses)
+
+        self.state = "polling"
+        self.workerStatus = ""
+        self.runningJobUuid = ""
 
         self.make_worker(makeDatastore, makeQueue)
         atexit.register(self.exit_handler)
 
         handlers += HANDLERS
         super(Server, self).__init__(handlers, **kwargs)
-
-    def get_worker_id(self):
-        return f"zerog#{self.thisHost}#{self.name}#{self.pid}"
 
     def make_job(self, data, jobType):
         return self.registry.make_job(
@@ -96,38 +92,15 @@ class Server(tornado.web.Application):
             uuid, self.datastore, self.jobQueue, None
         )
 
-    def enqueue_update_message(self, msg):
-        fullmsg = dict(
-            workerId=self.workerId,
-            msg=msg
-        )
-        self.updatesQueue.put(json.dumps(fullmsg))
-
-    def process_control_msg(self, controlMsg):
-        pass
-
-    def poll_control_queue(self):
-        controlMsg = self.controlQueue.reserve(timeout=0)
-        if controlMsg:
-            self.process_control_msg(controlMsg)
-
-        tornado.ioloop.IOLoop.instance().call_later(
-            POLL_INTERVAL, self.poll_control_queue
-        )
-
     def exit_handler(self):
         """
         Makes sure worker dies on exit
         """
-        log.info("server {0} exiting".format(self.pid))
+        log.info(f"server {self.pid} exiting")
         self.kill_worker()
 
     def make_worker(self, makeDatastore, makeQueue):
-        log.info(
-            "server {0} creating worker".format(
-                self.pid
-            )
-        )
+        log.info(f"server {self.pid} creating worker")
         self.parentConn, self.childConn = multiprocessing.Pipe()
         self.worker = zerog.BaseWorker(
             self.name, makeDatastore, makeQueue, self.registry, self.childConn
@@ -135,84 +108,70 @@ class Server(tornado.web.Application):
         self.start_worker()
 
         tornado.ioloop.IOLoop.instance().call_later(
-            0, self.worker_poll
+            0, self.poll
         )
 
     def start_worker(self):
         self.proc = multiprocessing.Process(target=self.worker.run)
         self.proc.daemon = True
         self.proc.start()
+        log.info(f"server {self.pid} started worker {self.proc.pid}")
+
+    def kill_worker(self, killJob=False):
+        self.do_poll()
 
         log.info(
-            "server {0} started worker {1}".format(
-                self.pid, self.proc.pid
-            )
+            f"server {self.pid} killing worker {self.proc.pid}, "
+            f"activeJob: {self.runningJobUuid}"
         )
-        self.enqueue_update_message("started")
-
-    def kill_worker(self):
-        self.do_worker_poll()
-
-        if self.runningJobUuid:
-            job = self.get_job(self.runningJobUuid)
-            job.record_event("System restart")
-
-        log.info(
-            "server {0} killing worker {1}, activeJob: {2}".format(
-                self.pid, self.proc.pid, self.runningJobUuid
-            )
-        )
-        self.enqueue_update_message("killed")
         self.proc.kill()
 
-    def stop_worker_polling(self):
-        log.info(
-            "server {0} worker {1} stop polling".format(
-                self.pid, self.proc.pid
-            )
-        )
-        self.enqueue_update_message("stop polling")
-        self.parentConn.send("stop polling")
+        # runningJobUuid is still set to the last job because we haven't
+        # run do_poll() yet
+        if self.runningJobUuid:
+            job = self.get_job(self.runningJobUuid)
+            if killJob:
+                self.runningJobUuid = ""
+                job.record_error(410, msg="Killed by user")
+                job.record_result(410)  # 'Gone' is best fit error code
+                self.jobQueue.delete(job.queueJobId)
+            else:
+                job.record_event("System restart")
 
-    def start_worker_polling(self):
-        log.info(
-            "server {0} worker {1} start polling".format(
-                self.pid, self.proc.pid
-            )
-        )
-        self.enqueue_update_message("start polling")
-        self.parentConn.send("start polling")
-
-    def stop_worker(self):
-        self.parentConn.send("die")
-        self.proc.join(0)
-        log.info(
-            "server {0} worker {1} stop requested. exitcode: {2}".format(
-                self.pid, self.proc.pid, self.proc.exitcode
-            )
-        )
-        self.enqueue_update_message("stopped")
+    def drain(self):
+        log.info(f"server {self.pid} worker {self.proc.pid} stop polling")
+        self.parentConn.send("drain")
+        self.state = "draining"
 
     def process_worker_message(self, msg):
         msgType = msg.get('type')
         if not msgType:
-            log.error(
-                "server {0} worker message has no type\n{1}".format(
-                    self.pid, msg
-                )
-            )
+            log.error(f"server {self.pid} worker message has no type\n{msg}")
             return
 
         if msgType == 'runningJobUuid':
-            self.runningJobUuid = msg['value']
+            newRunningJobUuid = msg['value']
+            if newRunningJobUuid:
+                kwargs = dict(action="start", uuid=newRunningJobUuid)
+                self.state = "runningJob"
+            else:
+                kwargs = dict(action="end", uuid=self.runningJobUuid)
+                self.state = "polling"
 
-        self.enqueue_update_message(msg)
+            self.runningJobUuid = newRunningJobUuid
+            kwargs['workerId'] = self.workerId
+            msg = make_msg("job", **kwargs)
+            self.updatesChannel.send_msg(msg)
 
-    def worker_poll(self):
-        self.do_worker_poll()
+    def poll(self):
+        self.do_poll()
         tornado.ioloop.IOLoop.instance().call_later(
-            POLL_INTERVAL, self.worker_poll
+            POLL_INTERVAL, self.poll
         )
+
+    def do_poll(self):
+        self.do_worker_poll()
+        self.do_control_queue_poll()
 
     def do_worker_poll(self):
         while self.parentConn.poll() is True:
@@ -221,9 +180,7 @@ class Server(tornado.web.Application):
                 msg = json.loads(text)
             except (TypeError, json.decoder.JSONDecodeError) as e:
                 log.error(
-                    "server {0} can't parse worker message\n{1}\n{2}".format(
-                        self.pid, msg, e
-                    )
+                    f"server {self.pid} can't parse worker message\n{msg}\n{e}"
                 )
             else:
                 self.process_worker_message(msg)
@@ -236,11 +193,7 @@ class Server(tornado.web.Application):
         if workerStatus != self.workerStatus:
             if workerStatus == psutil.STATUS_ZOMBIE:
                 self.proc.join(0)
-                log.info(
-                    "server {0}, worker {1} is zombie.".format(
-                        self.pid, self.proc.pid
-                    )
-                )
+                log.info(f"server {self.pid}, worker {self.pid} is zombie.")
                 if self.runningJobUuid:
                     job = self.get_job(self.runningJobUuid)
                     if job:
@@ -250,10 +203,9 @@ class Server(tornado.web.Application):
                         )
                     else:
                         log.error(
-                            "server {0} can't load last running job".format(
-                                self.pid
-                            )
+                            f"server {self.pid} can't load last running job"
                         )
+
                 restart = True
 
             elif workerStatus == "NoSuchProcess":
@@ -271,3 +223,24 @@ class Server(tornado.web.Application):
                 self.start_worker()
 
             self.workerStatus = workerStatus
+
+    def do_control_queue_poll(self):
+        msg = self.ctrlChannel.get_msg()
+        if msg:
+            if msg.msgtype == "requestInfo":
+                infomsg = make_msg(
+                    "info",
+                    workerId=self.workerId,
+                    state=self.state,
+                    uuid=self.runningJobUuid
+                )
+                self.updatesChannel.send_msg(infomsg)
+
+            elif msg.msgtype == "drain":
+                self.drain()
+
+            elif msg.msgtype == "killJob":
+                uuid = self.runningJobUuid
+                if uuid and uuid == msg.uuid:
+                    self.kill_worker(killJob=True)
+                    self.start_worker()

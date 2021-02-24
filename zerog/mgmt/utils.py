@@ -4,8 +4,21 @@
 Copyright (c) 2021 MotiveMetrics. All rights reserved.
 
 """
+DELIM = "+$"
 
 
 def make_worker_id(workerType, thisHost, serviceName, pid):
-    delim = "+$"
-    return f"{workerType}{delim}{thisHost}{delim}{serviceName}{delim}{pid}"
+    return f"{workerType}{DELIM}{thisHost}{DELIM}{serviceName}{DELIM}{pid}"
+
+
+def parse_worker_id(workerId):
+    split = workerId.split(DELIM)
+    if len(split) == 4:
+        return dict(
+            workerType=split[0],
+            thisHost=split[1],
+            serviceName=split[2],
+            pid=int(split[3])
+        )
+    else:
+        return None

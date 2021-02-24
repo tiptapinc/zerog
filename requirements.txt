@@ -4,6 +4,9 @@ marshmallow>=3.0.5
 psutil
 pyyaml
 tornado>=4.5
+
+# for testing ...
+gunicorn
 mock
 pytest
 pytest-cov

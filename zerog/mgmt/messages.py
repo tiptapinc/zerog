@@ -10,12 +10,9 @@ from marshmallow import Schema, fields
 from marshmallow.validate import OneOf
 
 VALID_STATES = [
-    "starting",
     "polling",
-    "runningJob"
-    "draining",
-    "orphaned",
-    "stopped"
+    "runningJob",
+    "draining"
 ]
 
 
@@ -24,7 +21,6 @@ VALID_STATES = [
 #
 class BaseSchema(Schema):
     msgtype = fields.String()
-    workerId = fields.String(required=True)
     timestamp = fields.DateTime(format="iso")
 
 
@@ -34,7 +30,6 @@ class BaseMsg(object):
 
     def __init__(self, **kwargs):
         self.msgtype = kwargs.get('msgtype', self.MSG_TYPE)
-        self.workerId = kwargs['workerId']
         self.timestamp = kwargs.get('timestamp', datetime.datetime.utcnow())
 
     def dump(self):
@@ -52,8 +47,8 @@ class BaseMsg(object):
 # to a manager
 
 class JobMsgSchema(BaseSchema):
+    workerId = fields.String(required=True)
     uuid = fields.String(required=True)
-    jobType = fields.String(required=True)
     action = fields.String(
         validate=OneOf(["start", "end"]),
         required=True
@@ -66,16 +61,18 @@ class JobMsg(BaseMsg):
 
     def __init__(self, **kwargs):
         super(JobMsg, self).__init__(**kwargs)
+        self.workerId = kwargs['workerId']
         self.uuid = kwargs['uuid']
-        self.jobType = kwargs['jobType']
         self.action = kwargs['action']
 
 
 class InfoMsgSchema(BaseSchema):
+    workerId = fields.String(required=True)
     state = fields.String(
         validate=OneOf(VALID_STATES),
         required=True
     )
+    uuid = fields.String()
 
 
 class InfoMsg(BaseMsg):
@@ -84,7 +81,9 @@ class InfoMsg(BaseMsg):
 
     def __init__(self, **kwargs):
         super(InfoMsg, self).__init__(**kwargs)
+        self.workerId = kwargs['workerId']
         self.state = kwargs['state']
+        self.uuid = kwargs.get('uuid', "")
 
 
 ##################################################################
@@ -119,36 +118,24 @@ class KillJobMsg(BaseMsg):
         self.uuid = kwargs['uuid']
 
 
-class StopPollingMsgSchema(BaseSchema):
+class DrainMsgSchema(BaseSchema):
     pass
 
 
-class StopPollingMsg(BaseMsg):
+class DrainMsg(BaseMsg):
     """
     tells a worker to stop polling for new jobs and enter the
     "draining" state
     """
-    SCHEMA = StopPollingMsgSchema
-    MSG_TYPE = "stopPolling"
-
-
-class StartPollingMsgSchema(BaseSchema):
-    pass
-
-
-class StartPollingMsg(BaseMsg):
-    """
-    tells a worker to start polling for new jobs
-    """
-    SCHEMA = StartPollingMsgSchema
-    MSG_TYPE = "startPolling"
+    SCHEMA = DrainMsgSchema
+    MSG_TYPE = "drain"
 
 
 ##################################################################
 # functions to create a message using keyword arguments or
 # to recreate a message from its serialized self
 
-def make_msg(msgtype, workerId, **kwargs):
+def make_msg(msgtype, **kwargs):
     """
     creates a message from keyword arguments
     """
@@ -156,7 +143,6 @@ def make_msg(msgtype, workerId, **kwargs):
     schema = msgClass.SCHEMA
 
     kwargs['msgtype'] = msgtype
-    kwargs['workerId'] = workerId
     loaded = schema().load(kwargs)
     msg = msgClass(**loaded)
 
@@ -176,8 +162,8 @@ MSG_CLASSES = [
     JobMsg,
     InfoMsg,
     RequestInfoMsg,
-    StopPollingMsg,
-    StartPollingMsg
+    KillJobMsg,
+    DrainMsg
 ]
 
 MSG_TYPE_TO_CLASS_MAP = {
