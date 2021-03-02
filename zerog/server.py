@@ -66,7 +66,9 @@ class Server(tornado.web.Application):
 
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
-        self.updatesChannel = MgmtChannel(makeQueue("updates"))
+        self.updatesChannel = MgmtChannel(
+            makeQueue(zerog.UPDATES_CHANNEL_NAME)
+        )
         self.ctrlChannel = MgmtChannel(makeQueue(self.workerId))
 
         self.registry = zerog.JobRegistry()

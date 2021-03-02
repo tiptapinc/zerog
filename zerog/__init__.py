@@ -1,3 +1,5 @@
+UPDATES_CHANNEL_NAME = "updates"
+
 from zerog.datastores import CouchbaseDatastore
 from zerog.handlers import (
     BaseHandler, GetDataHandler, ProgressHandler, RunJobHandler
