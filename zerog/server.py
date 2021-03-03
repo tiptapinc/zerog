@@ -156,7 +156,7 @@ class Server(tornado.web.Application):
             if newRunningJobUuid:
                 kwargs = dict(action="start", uuid=newRunningJobUuid)
                 self.state = "runningJob"
-            else:
+            elif self.state != "draining":
                 kwargs = dict(action="end", uuid=self.runningJobUuid)
                 self.state = "polling"
 
