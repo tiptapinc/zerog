@@ -21,7 +21,7 @@ source (even though this is known from the queue)
 data
 
 """
-from zerog.mgmt.messages import make_msg, make_msg_from_json
+from .messages import make_msg, make_msg_from_json
 
 
 class MgmtChannel(object):

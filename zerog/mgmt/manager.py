@@ -1,5 +1,7 @@
 import zerog
-from zerog.mgmt import MgmtChannel, make_msg, parse_worker_id
+from .channels import MgmtChannel
+from .messages import make_msg
+from .utils import parse_worker_id
 
 
 class WorkerManager(object):
