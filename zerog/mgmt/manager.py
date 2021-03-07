@@ -29,6 +29,37 @@ class WorkerManager(object):
 
         return self.ctrlChannels[workerId]
 
+    def workers_by_host(self):
+        workersByHost = {}
+        for workerId, workerData in self.workers.items():
+            parsed = parse_worker_id(workerId)
+
+            host = parsed['host']
+            if host not in workersByHost:
+                workersByHost[host] = []
+
+            workersByHost[host] = dict(
+                workerId=workerId,
+                state=workerData['state'],
+                runningJobUuid=workerData['runningJobUuid']
+            )
+
+        return workersByHost
+
+    def drain_host(self, host):
+        workerIds = [
+            w['workerId']
+            for w in self.workers_by_host().get(host, [])
+        ]
+        self.drain_workers(workerIds)
+
+    def job_count_by_host(self):
+        jobCounts = {
+            host: len([w for w in workers if w.runningJobUuid])
+            for host, workers in self.workers_by_host().items()
+        }
+        return jobCounts
+
     def known_workers(self):
         """
         returns a dictionary of {workerId: workerData}, for all workers
