@@ -5,24 +5,26 @@ from .utils import parse_worker_id
 
 
 class WorkerManager(object):
-    def __init__(self, **kwargs):
-        queue = zerog.BeanstalkdQueue(
-            "synapse",  # not cool
-            8101,       # also not cool
-            zerog.UPDATES_CHANNEL_NAME
-        )
+    def __init__(self, queueHost, queuePort):
+        self.queueHost = queueHost
+        self.queuePort = queuePort
+
+        queue = self.get_queue(zerog.UPDATES_CHANNEL_NAME)
         self.updatesChannel = MgmtChannel(queue)
+
         self.ctrlChannels = {}
         self.jobRuns = {}
         self.workers = {}
 
+    def get_queue(self, queueName):
+        queue = zerog.BeanstalkdQueue(
+            self.queueHost, self.queuePort, queueName
+        )
+        return queue
+
     def get_ctrl_channel(self, workerId):
         if workerId not in self.ctrlChannels:
-            queue = zerog.BeanstalkdQueue(
-                "synapse",  # not cool
-                8101,       # not cool
-                workerId
-            )
+            queue = self.get_queue(workerId)
             self.ctrlChannels[workerId] = MgmtChannel(queue)
 
         return self.ctrlChannels[workerId]
