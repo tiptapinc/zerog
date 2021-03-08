@@ -38,10 +38,12 @@ class WorkerManager(object):
             if host not in workersByHost:
                 workersByHost[host] = []
 
-            workersByHost[host] = dict(
-                workerId=workerId,
-                state=workerData['state'],
-                runningJobUuid=workerData['runningJobUuid']
+            workersByHost[host].append(
+                dict(
+                    workerId=workerId,
+                    state=workerData['state'],
+                    runningJobUuid=workerData['runningJobUuid']
+                )
             )
 
         return workersByHost
@@ -53,9 +55,20 @@ class WorkerManager(object):
         ]
         self.drain_workers(workerIds)
 
+    def host_is_drained(self, host):
+        workers = self.workers_by_host().get(host, [])
+        if len(workers) == 0:
+            return False
+
+        drained = [
+            (w['draining'] and not w['runningJobUuid'])
+            for w in workers
+        ]
+        return drained
+
     def job_count_by_host(self):
         jobCounts = {
-            host: len([w for w in workers if w.runningJobUuid])
+            host: len([w for w in workers if w['runningJobUuid']])
             for host, workers in self.workers_by_host().items()
         }
         return jobCounts
