@@ -61,7 +61,7 @@ class WorkerManager(object):
             return False
 
         drained = [
-            (w['draining'] and not w['runningJobUuid'])
+            (w['state'] == "draining" and not w['runningJobUuid'])
             for w in workers
         ]
         return drained
@@ -103,6 +103,12 @@ class WorkerManager(object):
             self.send_ctrl_msg(workerId, msg)
 
     def request_worker_statuses(self, workerIds):
+        # if there is an outstanding worker status request sitting in
+        # this queue, that could be a sign that the worker is dead, and
+        # just piling up worker status requests is only going to keep
+        # the channel open
+        #
+        # can we count listeners to figure it out?
         msg = make_msg("requestInfo")
         for workerId in workerIds:
             self.send_ctrl_msg(workerId, msg)
