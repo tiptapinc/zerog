@@ -73,6 +73,13 @@ class WorkerManager(object):
         }
         return jobCounts
 
+    def states_by_host(self):
+        states = {
+            host: [w['state'] for w in workers]
+            for host, workers in self.workers_by_host().items()
+        }
+        return states
+
     def known_workers(self):
         """
         returns a dictionary of {workerId: workerData}, for all workers
