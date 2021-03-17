@@ -64,7 +64,7 @@ class WorkerManager(object):
             (w['state'] == "draining" and not w['runningJobUuid'])
             for w in workers
         ]
-        return drained
+        return all(drained)
 
     def job_count_by_host(self):
         jobCounts = {
