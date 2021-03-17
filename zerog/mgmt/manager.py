@@ -91,11 +91,34 @@ class WorkerManager(object):
 
         # note that queueName == workerId
         channelNames = self.updatesChannel.list_all_queues()
-        workerData = {
-            wid: parsed for wid, parsed in
-            {wid: parse_worker_id(wid) for wid in channelNames}.items()
-            if parsed
-        }
+        workerData = {}
+        for wid in channelNames:
+            parsed = parse_worker_id(wid)
+            if parsed:
+                if self.updatesChannel.get_named_queue_watchers() == 0:
+                    # the queue exists but has no watchers, which means the
+                    # associated worker is terminated but there are messages
+                    # in the queue which are keeping it alive.
+                    #
+                    # so the solution is to empty out the queue and then
+                    # delete its associated ctrlChannel.
+                    #
+                    # this is a mess and really just points out that zerog
+                    # management channels and probably the zerog Queue classes
+                    # need to be rethought.
+                    #
+                    # le sigh
+                    channel = self.get_ctrl_channel(wid)
+                    channel.empty()
+                    del self.ctrlChannels[wid]
+                else:
+                    workerData[wid] = parsed
+
+        # workerData = {
+        #     wid: parsed for wid, parsed in
+        #     {wid: parse_worker_id(wid) for wid in channelNames}.items()
+        #     if parsed
+        # }
         return workerData
 
     def send_ctrl_msg(self, workerId, msg):

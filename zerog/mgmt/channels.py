@@ -96,3 +96,25 @@ class MgmtChannel(object):
         named for this instance
         """
         return self.queue.list_all_queues()
+
+    def get_named_queue_watchers(self, queueName):
+        """
+        returns the number of watchers for a named queue
+
+        this is bad, but will work for now.
+
+        why is it bad?
+            - uses non-public functionality of self.queue (do_bean)
+
+            - uses a queue-specific parameter (current-watching)
+
+            - what we really need is a management queue that can
+              temporarily attach to named queues
+        """
+        stats = self.queue.do_bean("stats_tube", queueName)
+        return stats['current-watching']
+
+    def empty(self):
+        self.attach()
+        while self.get_msg():
+            pass
