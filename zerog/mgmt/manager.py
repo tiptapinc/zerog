@@ -95,7 +95,7 @@ class WorkerManager(object):
         for wid in channelNames:
             parsed = parse_worker_id(wid)
             if parsed:
-                if self.updatesChannel.get_named_queue_watchers() == 0:
+                if self.updatesChannel.get_named_queue_watchers(wid) == 0:
                     # the queue exists but has no watchers, which means the
                     # associated worker is terminated but there are messages
                     # in the queue which are keeping it alive.
