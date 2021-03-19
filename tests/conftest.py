@@ -3,54 +3,77 @@ import multiprocessing
 import pdb
 import pytest
 
-from zerog.datastores.mock_datastore import MockDatastore
-from zerog.queues.mock_queue import MockQueue, MockQueueJob
-from zerog.registry import JobRegistry
-from zerog.server import Server
-from zerog.workers import BaseWorker
-
 from tests.job_classes import GoodJob
+import zerog
+from zerog.queues.beanstalk_queue import QueueJob
 
 
 @pytest.fixture
-def good_job_registry():
-    """
-    Creates a JobRegistry and adds the GoodJob class to it
-    """
-    registry = JobRegistry(MockDatastore(), MockQueue())
-    registry.add_classes([GoodJob])
-    return registry
+def datastore():
+    return zerog.CouchbaseDatastore(
+        "couchbase", "Administrator", "password", "test"
+    )
 
 
 @pytest.fixture
-def good_job_registry_with_keepalive():
-    keepalive = mock.Mock()
-    registry = JobRegistry(MockDatastore(), MockQueue(), keepalive)
-    registry.add_classes([GoodJob])
-    return registry, keepalive
+def make_datastore(datastore):
+    def _func():
+        return datastore
+
+    return _func
 
 
 @pytest.fixture
-def make_good_job(good_job_registry):
-    registry = good_job_registry
-    job = registry.make_job(dict(), GoodJob.JOB_TYPE)
-    return job, registry
+def make_queue():
+    """
+    creates a beanstalkd queue object
+
+    assumes a docker-compose environment with beanstalkd container at
+    hostname "beanstalkd"
+    """
+    def _func(queueName):
+        return zerog.BeanstalkdQueue("beanstalkd", 11300, queueName)
+
+    return _func
 
 
 @pytest.fixture
-def make_good_job_with_keepalive(good_job_registry_with_keepalive):
-    registry, keepalive = good_job_registry_with_keepalive
-    job = registry.make_job(dict(), GoodJob.JOB_TYPE)
-    return job, registry, keepalive
+def peek_delayed():
+    def _func(queue):
+        return queue.do_bean("peek_delayed")
+
+    return _func
 
 
-@pytest.fixture()
-def make_test_job_registry():
+@pytest.fixture
+def jobs_queue(make_queue):
+    return make_queue("zerog_test_jobs")
+
+
+@pytest.fixture
+def clear_queue():
     """
-    Creates a JobRegistry and adds a test-defined job to it
+    clear all the jobs out of a queue
+
+    call this before enqueuing a job to make sure it's the next job
+    to get run.
     """
+    def _func(queue):
+        queue.attach()
+        while True:
+            j = queue.reserve(timeout=0)
+            if j is None:
+                break
+
+            j.delete()
+
+    return _func
+
+
+@pytest.fixture
+def job_registry():
     def _func(jobClass):
-        registry = JobRegistry(MockDatastore(), MockQueue())
+        registry = zerog.JobRegistry()
         registry.add_classes([jobClass])
         return registry
 
@@ -58,26 +81,44 @@ def make_test_job_registry():
 
 
 @pytest.fixture()
-def make_test_job(make_test_job_registry):
-    def _func(jobClass):
-        registry = make_test_job_registry(jobClass)
-        job = registry.make_job(dict(), jobClass.JOB_TYPE)
+def make_test_job(job_registry, datastore, jobs_queue):
+    def _func(jobClass, **kwargs):
+        registry = job_registry(jobClass)
+        job = registry.make_job(
+            dict(), datastore, jobs_queue, jobType=jobClass.JOB_TYPE, **kwargs
+        )
         return job, registry
 
     return _func
 
 
 @pytest.fixture
-def make_worker():
+def make_good_job(make_test_job):
+    return make_test_job(GoodJob)
+
+
+@pytest.fixture
+def make_good_job_with_keepalive(make_test_job):
+    keepalive = mock.Mock()
+    return make_test_job(GoodJob, keepalive=keepalive) + (keepalive,)
+
+
+@pytest.fixture
+def make_worker(make_datastore, make_queue):
+    """
+    makes a worker and initializes its 'run' context
+    """
     def _func(registry):
         parentConn, childConn = multiprocessing.Pipe()
-        worker = BaseWorker(
-            registry.datastore,
-            registry.queue,
+        worker = zerog.BaseWorker(
+            "zerog_test",
+            make_datastore,
+            make_queue,
             registry,
             childConn
         )
-        return worker
+        worker.run_init()
+        return worker, parentConn
 
     return _func
 
@@ -87,38 +128,47 @@ def make_job_and_worker(make_test_job, make_worker):
     def _func(jobClass):
         job, registry = make_test_job(jobClass)
         job.save()
-        worker = make_worker(registry)
-        return job, registry, worker
+        worker, parentConn = make_worker(registry)
+        return job, registry, worker, parentConn
 
     return _func
 
 
 @pytest.fixture
-def run_job(make_job_and_worker):
+def run_job(make_job_and_worker, clear_queue):
+    """
+    creates a job
+    creates a worker
+    clears the queue
+    enqueues the job
+    simulates running the worker's polling loop
+    """
     def _func(jobClass):
-        job, registry, worker = make_job_and_worker(jobClass)
-        queueJob = MockQueueJob(registry.queue, 1, job.uuid)
+        job, registry, worker, parentConn = make_job_and_worker(jobClass)
+        clear_queue(job.queue)
+        job.enqueue()
+        queueJob = job.queue.reserve(timeout=0)
         worker._process_queue_job(queueJob)
         job.reload()
-        releaseJob = registry.queue.reserve()
-        return job, queueJob, releaseJob
+        return job, queueJob
 
     return _func
 
 
 @pytest.fixture
-def zerog_app():
+def zerog_app(make_datastore, make_queue):
     """
     Creates a zerog app with specified handlers
     """
     def _func(jobClasses, handlers):
         # pdb.set_trace()
-        server = Server(
-            MockDatastore(),
-            MockQueue(),
-            MockQueue(),
+        server = zerog.Server(
+            "zerog_test",
+            make_datastore,
+            make_queue,
             jobClasses,
-            handlers
+            handlers,
+            thisHost="zerog"
         )
         return server
 

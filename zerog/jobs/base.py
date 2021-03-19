@@ -71,6 +71,7 @@ class BaseJobSchema(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
     warnings = fields.List(fields.Nested(WarningSchema))
 
+    running = fields.Boolean()
     errorCount = fields.Integer()
     completeness = fields.Float()
     tickcount = fields.Float()
@@ -126,6 +127,7 @@ class BaseJob(ABC):
         self.errors = kwargs.get('errors', [])
         self.warnings = kwargs.get('warnings', [])
 
+        self.running = kwargs.get('running', False)
         self.errorCount = kwargs.get('errorCount', 0)
         self.completeness = kwargs.get('completeness', 0)
         self.tickcount = kwargs.get('tickcount', 0.0)

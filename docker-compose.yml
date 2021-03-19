@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  beanstalkd:
+    image: schickling/beanstalkd
+    ports:
+      - 11300:11300
+    command: "-l '0.0.0.0'"
+
+  couchbase:
+    build: zerog_couchbase
+    ports:
+      - 8091-8094:8091-8094
+      - 11210:11210
+
+  zerog:
+    build: .
+    volumes:
+      - ./zerog:/zerog
+      - ./tests:/tests
+
+    entrypoint: ["sh", "-c", "sleep infinity"]  # uncomment for debugging

@@ -9,22 +9,22 @@ from tests.job_classes import GoodJob, RequeueJob
 
 
 def test_initial_registry():
-    registry = JobRegistry(MockDatastore(), MockQueue())
+    registry = JobRegistry()
     classes = registry.get_registered_classes()
 
     assert len(classes) == 0
 
 
-def test_add_classes(good_job_registry):
-    registry = good_job_registry
+def test_add_classes(job_registry):
+    registry = job_registry(GoodJob)
     classes = registry.get_registered_classes()
 
     assert len(classes) == 1
     assert GoodJob in classes
 
 
-def test_add_another_class(good_job_registry):
-    registry = good_job_registry
+def test_add_another_class(job_registry):
+    registry = job_registry(GoodJob)
     added = registry.add_classes([RequeueJob])
     classes = registry.get_registered_classes()
 
@@ -37,8 +37,8 @@ def test_add_another_class(good_job_registry):
     assert RequeueJob in classes
 
 
-def test_add_not_subclass(good_job_registry):
-    registry = good_job_registry
+def test_add_not_subclass(job_registry):
+    registry = job_registry(GoodJob)
     added = registry.add_classes([int])
 
     assert len(added) == 1
@@ -48,7 +48,7 @@ def test_add_not_subclass(good_job_registry):
 
 
 def test_add_good_and_bad_classes():
-    registry = JobRegistry(MockDatastore(), MockQueue())
+    registry = JobRegistry()
     added = registry.add_classes(
         [GoodJob, int]
     )
@@ -70,48 +70,53 @@ def test_add_good_and_bad_classes():
         assert added[name]['error'] == error
 
 
-def test_make_job_with_job_type_arg(good_job_registry):
-    registry = good_job_registry
-    job = registry.make_job(dict(), GoodJob.JOB_TYPE)
-
+def test_make_job_with_job_type_arg(job_registry, datastore, jobs_queue):
+    registry = job_registry(GoodJob)
+    job = registry.make_job(
+        dict(), datastore, jobs_queue, jobType=GoodJob.JOB_TYPE
+    )
     assert isinstance(job, GoodJob)
     assert job.goodness == "gracious"
     assert job.run() == (200, None)
 
 
-def test_make_job_with_bad_job_type_arg(good_job_registry):
-    registry = good_job_registry
-    job = registry.make_job(dict(), "whatever")
-
+def test_make_job_with_bad_job_type_arg(job_registry, datastore, jobs_queue):
+    registry = job_registry(GoodJob)
+    job = registry.make_job(
+        dict(), datastore, jobs_queue, jobType="whatever"
+    )
     assert job is None
 
 
-def test_make_job_from_data(good_job_registry):
-    registry = good_job_registry
+def test_make_job_from_data(job_registry, datastore, jobs_queue):
+    registry = job_registry(GoodJob)
     data = dict(goodness="not really", jobType=GoodJob.JOB_TYPE)
-    job = registry.make_job(data)
+    job = registry.make_job(data, datastore, jobs_queue)
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "not really"
     assert job.run() == (200, None)
 
 
-def test_get_job(good_job_registry):
-    registry = good_job_registry
-    job = registry.make_job(dict(), GoodJob.JOB_TYPE)
+def test_get_job(job_registry, datastore, jobs_queue):
+    registry = job_registry(GoodJob)
+    job = registry.make_job(
+        dict(), datastore, jobs_queue, jobType=GoodJob.JOB_TYPE
+    )
     job.save()
-    job = registry.get_job(job.uuid)
+    job = registry.get_job(job.uuid, datastore, jobs_queue)
 
     assert isinstance(job, GoodJob)
     assert job.goodness == "gracious"
     assert job.run() == (200, None)
 
 
-def test_get_job_bad_uuid(good_job_registry):
-    registry = good_job_registry
-    job = registry.make_job(dict(), GoodJob.JOB_TYPE)
-    # pdb.set_trace()
+def test_get_job_bad_uuid(job_registry, datastore, jobs_queue):
+    registry = job_registry(GoodJob)
+    job = registry.make_job(
+        dict(), datastore, jobs_queue, jobType=GoodJob.JOB_TYPE
+    )
     job.save()
-    job = registry.get_job("poopty poopty pants")
+    job = registry.get_job("poopty poopty pants", datastore, jobs_queue)
 
     assert job is None

@@ -9,7 +9,7 @@ import pdb
 import pytest
 from tornado.httpclient import HTTPError
 
-from zerog.handlers.progress import ProgressHandler
+from zerog.handlers.uuid import ProgressHandler
 from zerog.handlers.run_job import RunJobHandler
 from zerog.jobs import BaseJob
 from zerog.registry import find_subclasses
@@ -35,8 +35,8 @@ def app(zerog_app):
 
 
 @pytest.mark.gen_test
-def test_progress(app, http_client, base_url):
-    job = app.registry.make_job(dict(), job_classes.GoodJob.JOB_TYPE)
+def test_progress(app, http_client, base_url, make_test_job):
+    job, registry = make_test_job(job_classes.GoodJob)
     job.save()
     response = yield http_client.fetch("%s/progress/%s" % (base_url, job.uuid))
 

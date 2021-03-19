@@ -18,14 +18,27 @@ class BeanstalkdQueue(object):
         self.port = port
         self.queueName = queueName
         self.bean = beanstalkc.Connection(host=host, port=port)
-        self.do_bean("use", queueName)
-        self.do_bean("watch", queueName)
+        self.attach()
 
     def put(self, data, **kwargs):
         return self.do_bean("put", json.dumps(data), **kwargs)
 
     def reserve(self, **kwargs):
         return self.do_bean("reserve", **kwargs)
+
+    def attach(self):
+        self.do_bean("use", self.queueName)
+        self.do_bean("watch", self.queueName)
+
+    def detach(self):
+        self.do_bean("use", "default")
+        self.do_bean("ignore", self.queueName)
+
+    def delete(self, jid):
+        self.do_bean("delete", jid)
+
+    def list_all_queues(self):
+        return self.do_bean("tubes")
 
     def do_bean(self, method, *args, **kwargs):
         for _ in range(3):
@@ -37,3 +50,11 @@ class BeanstalkdQueue(object):
                 self.__init__(self.host, self.port, self.queueName)
 
         raise beanstalkc.SocketError
+
+
+class QueueJob(beanstalkc.Job):
+    """
+    this is just for testing
+    """
+    def __init__(self, queue, body, jid=1):
+        super(QueueJob, self).__init__(queue.bean, jid, body)

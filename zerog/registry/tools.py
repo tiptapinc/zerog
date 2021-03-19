@@ -19,7 +19,6 @@ def find_subclasses(cls):
         cls: class what you want to find the subclasses of
     """
     subs = cls.__subclasses__()
-    print(cls, "has", len(subs), "subclasses")
     if not subs:
         return []
 

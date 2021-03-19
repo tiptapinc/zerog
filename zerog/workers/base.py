@@ -16,7 +16,7 @@ import zerog.jobs
 import logging
 log = logging.getLogger(__name__)
 
-MAX_TIMEOUTS = 3
+MAX_TIMEOUTS = 2
 MAX_RESERVES = 3
 
 POLL_INTERVAL = 2
@@ -31,6 +31,8 @@ class BaseWorker(object):
     Communicate with the parent via a multiprocessing Pipe
 
     Args:
+        name: name of the service
+
         makeDatastore: function to create a Datastore object that can be
                        used to persist & retrieve jobs.
 
@@ -64,17 +66,29 @@ class BaseWorker(object):
             - Polls job queue
             - Runs jobs
         """
-        self.datastore = self.makeDatastore()
-        self.queue = self.makeQueue("{0}_jobs".format(self.name))
-        self.pid = psutil.Process().pid
-        self.runningJobs = True
+        self.run_init()
         self.conn.send(json.dumps(dict(type="ready", value=True)))
         log.info(
             "starting {0} worker {1}".format(
                 self.name, self.pid
             )
         )
+        self.run_loop()
 
+    def run_init(self):
+        """
+        sets attributes that need to be initialized in the child process
+        context
+        """
+        self.datastore = self.makeDatastore()
+        self.queue = self.makeQueue("{0}_jobs".format(self.name))
+        self.pid = psutil.Process().pid
+        self.draining = False
+
+    def run_loop(self):
+        """
+        runs the worker's main event loop
+        """
         while True:
             # check if parent has sent a message
             #
@@ -82,41 +96,13 @@ class BaseWorker(object):
             # rate at which the job queue is polled
             if self.conn.poll(POLL_INTERVAL) is True:
                 msg = self.conn.recv().lower()
-                if msg:
-                    log.info(
-                        "worker {0} received message: {1}".format(
-                            self.pid, msg
-                        )
-                    )
-                    if msg == "stop polling":
-                        log.info(
-                            "worker {0} stop running jobs".format(
-                                self.pid
-                            )
-                        )
-                        self.runningJobs = False
+                if msg == "drain":
+                    log.info(f"worker {self.pid} start draining")
+                    self.draining = True
 
-                    elif msg == "start polling":
-                        log.info(
-                            "worker {0} start running jobs".format(
-                                self.pid
-                            )
-                        )
-                        self.runningJobs = True
-
-                    elif msg == "die":
-                        log.info(
-                            "worker {0} stopping".format(
-                                self.pid
-                            )
-                        )
-                        return
-
-            # check if there is a job available in the job queue. Try to
-            # run the job if so.
-            #
-            # catch DEADLINE_SOON exception here or in queue object?
-            if self.runningJobs:
+            if not self.draining:
+                # check if there is a job available in the job queue. Try
+                # to run the job if so.
                 queueJob = self.queue.reserve(timeout=0)
                 if queueJob:
                     self._process_queue_job(queueJob)
@@ -205,6 +191,7 @@ class BaseWorker(object):
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=uuid))
             )
+            job.update_attrs(running=True)
             returnVal = job.run()
 
             log.info(
@@ -239,7 +226,7 @@ class BaseWorker(object):
             return
 
         except SystemExit:
-            # This will be captured and logged. Job will restart with
+            # This will be captured and logged. Job will restart with no
             # impact on error-handling
             resultCode = zerog.jobs.NO_RESULT
             delay = 30
@@ -282,6 +269,7 @@ class BaseWorker(object):
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=""))
             )
+            job.update_attrs(running=False)
 
         queueJob.delete()
         if resultCode == zerog.jobs.NO_RESULT:
