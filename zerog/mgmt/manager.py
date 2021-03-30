@@ -126,6 +126,7 @@ class WorkerManager(object):
         channel = self.get_ctrl_channel(workerId)
         channel.attach()
         channel.send_msg(msg)
+        channel.detach()
 
     def drain_workers(self, workerIds):
         msg = make_msg("drain")

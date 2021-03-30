@@ -1,3 +1,6 @@
+## v0.0.21
+* detach from ctrl queue after sending message
+
 ## v0.0.20
 * make Dockerfile & docker-compose file for testing
 * fix tests
