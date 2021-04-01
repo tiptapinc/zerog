@@ -235,7 +235,8 @@ class Server(tornado.web.Application):
                     "info",
                     workerId=self.workerId,
                     state=self.state,
-                    uuid=self.runningJobUuid
+                    uuid=self.runningJobUuid,
+                    mem=dict(psutil.virtual_memory()._asdict())
                 )
                 self.updatesChannel.send_msg(infomsg)
 
