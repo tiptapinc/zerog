@@ -197,7 +197,8 @@ class BaseWorker(object):
                     zerog.jobs.INTERNAL_ERROR,
                     "job was killed - likely out of memory\n"
                 )
-                if job.continue_running():
+                resultCode = job.continue_running()
+                if resultCode == zerog.jobs.NO_RESULT:
                     job.record_event("Killed (memory error?) - Restarting")
                 else:
                     job.record_event("Killed (memory error?) - Finished")
