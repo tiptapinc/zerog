@@ -202,7 +202,7 @@ class Server(tornado.web.Application):
                     if job:
                         job.job_log_error(
                             zerog.jobs.INTERNAL_ERROR,
-                            "worker failed - possibly out of memory"
+                            "worker failed - possibly out of memory\n"
                         )
                     else:
                         log.error(
