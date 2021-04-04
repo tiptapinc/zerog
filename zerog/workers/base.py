@@ -202,6 +202,7 @@ class BaseWorker(object):
                     job.record_event("Killed (memory error?) - Restarting")
                 else:
                     job.record_event("Killed (memory error?) - Finished")
+                    self.record_result(resultCode)
                     queueJob.delete()
                     return
 
