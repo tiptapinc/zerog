@@ -389,6 +389,10 @@ class BaseJob(ABC):
         Override this method as needed for more complex error handling
         """
         if self.errorCount >= self.MAX_ERRORS:
+            self.record_result(
+                INTERNAL_ERROR,
+                f"terminated: > {self.MAX_ERRORS} errors"
+            )
             return INTERNAL_ERROR
 
         return NO_RESULT
