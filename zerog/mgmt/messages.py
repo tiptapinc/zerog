@@ -172,3 +172,69 @@ MSG_TYPE_TO_CLASS_MAP = {
     msgClass.MSG_TYPE: msgClass
     for msgClass in MSG_CLASSES
 }
+
+
+##################################################################
+# functions to send or retrieve messages on a specified queue
+# connection/tube combination
+
+def send_msg(msg, queue, tube, **kwargs):
+    """
+    send a message on a queue connection / tube by temporarily using
+    the named tube.
+
+    currently makes assumptions about the 'queue' object's internal
+    workings (not good)
+
+    Args:
+        msg: a zerog management message - subclass of messages.BaseMsg
+
+        queue: a zerog.BeanstalkdQueue object.
+
+        tube: the name of a Beanstalkd tube (aka "queueName" elsewhere)
+
+        kwargs: keyword arguments passed through to queue's "put" method
+    """
+    queue.do_bean("use", tube)
+    queue.put(msg.dump(), **kwargs)
+    queue.do_bean("use", "default")
+
+
+def get_msg(queue, tube, **kwargs):
+    """
+    get a message if one is available from a queue connection / tube
+    by temporarily watching the named tube.
+
+    currently makes assumptions about the 'queue' object's internal
+    workings (not good)
+
+    Args:
+        queue: a zerog.BeanstalkdQueue object.
+
+        tube: the name of a Beanstalkd tube (aka "queueName" elsewhere)
+
+        kwargs: keyword arguments passed through to the queue's
+                "reserve" method
+
+    Returns:
+        next available message from the queue, or None if there are no
+        available messages.
+
+        Returned message will be a subclass of messages.BaseMsg
+    """
+    queue.do_bean("watch", tube)
+
+    if 'timeout' not in kwargs:
+        kwargs['timeout'] = 0
+
+    msg = None
+    queueJob = queue.reserve(**kwargs)
+    if queueJob:
+        # could wrap this in a try:except to catch malformed messages
+        # but they really shouldn't be happening so I think it's better
+        # to let any exceptions trickle up
+        msg = make_msg_from_json(queueJob.body)
+        queueJob.delete()
+
+    queue.do_bean("ignore", tube)
+    return msg

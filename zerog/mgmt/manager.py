@@ -1,6 +1,6 @@
 import zerog
 from .channels import MgmtChannel
-from .messages import make_msg
+from .messages import make_msg, send_msg, get_msg
 from .utils import parse_worker_id
 
 
@@ -9,10 +9,9 @@ class WorkerManager(object):
         self.queueHost = queueHost
         self.queuePort = queuePort
 
-        queue = self.get_queue(zerog.UPDATES_CHANNEL_NAME)
-        self.updatesChannel = MgmtChannel(queue)
+        self.queue = self.get_queue(zerog.UPDATES_CHANNEL_NAME)
+        self.updatesChannel = MgmtChannel(self.queue)
 
-        self.ctrlChannels = {}
         self.jobRuns = {}
         self.workers = {}
 
@@ -21,13 +20,6 @@ class WorkerManager(object):
             self.queueHost, self.queuePort, queueName
         )
         return queue
-
-    def get_ctrl_channel(self, workerId):
-        if workerId not in self.ctrlChannels:
-            queue = self.get_queue(workerId)
-            self.ctrlChannels[workerId] = MgmtChannel(queue)
-
-        return self.ctrlChannels[workerId]
 
     def workers_by_host(self):
         workersByHost = {}
@@ -85,10 +77,6 @@ class WorkerManager(object):
         returns a dictionary of {workerId: workerData}, for all workers
         that are listening on a control channel queue.
         """
-        # make sure this WorkerManager isn't keeping any ctrl channels open
-        for channel in self.ctrlChannels.values():
-            channel.detach()
-
         # note that queueName == workerId
         channelNames = self.updatesChannel.list_all_queues()
         workerData = {}
@@ -108,9 +96,9 @@ class WorkerManager(object):
                     # need to be rethought.
                     #
                     # le sigh
-                    channel = self.get_ctrl_channel(wid)
-                    channel.empty()
-                    del self.ctrlChannels[wid]
+                    while get_msg(self.queue, wid):
+                        pass
+
                 else:
                     workerData[wid] = parsed
 
@@ -122,11 +110,8 @@ class WorkerManager(object):
         return workerData
 
     def send_ctrl_msg(self, workerId, msg):
-        # workers listen to a control channel where queueName == workerId
-        channel = self.get_ctrl_channel(workerId)
-        channel.attach()
-        channel.send_msg(msg)
-        channel.detach()
+        # workers listen to a control channel where tube == workerId
+        send_msg(msg, self.queue, workerId)
 
     def drain_workers(self, workerIds):
         msg = make_msg("drain")
