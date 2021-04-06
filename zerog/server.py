@@ -197,18 +197,7 @@ class Server(tornado.web.Application):
             if workerStatus == psutil.STATUS_ZOMBIE:
                 self.proc.join(0)
                 log.info(f"server {self.pid}, worker {self.pid} is zombie.")
-                if self.runningJobUuid:
-                    job = self.get_job(self.runningJobUuid)
-                    if job:
-                        job.job_log_error(
-                            zerog.jobs.INTERNAL_ERROR,
-                            "worker failed - possibly out of memory"
-                        )
-                    else:
-                        log.error(
-                            f"server {self.pid} can't load last running job"
-                        )
-
+                self.runningJobUuid = ""
                 restart = True
 
             elif workerStatus == "NoSuchProcess":
@@ -235,7 +224,8 @@ class Server(tornado.web.Application):
                     "info",
                     workerId=self.workerId,
                     state=self.state,
-                    uuid=self.runningJobUuid
+                    uuid=self.runningJobUuid,
+                    mem=dict(psutil.virtual_memory()._asdict())
                 )
                 self.updatesChannel.send_msg(infomsg)
 

@@ -73,6 +73,7 @@ class InfoMsgSchema(BaseSchema):
         required=True
     )
     uuid = fields.String()
+    mem = fields.Dict()
 
 
 class InfoMsg(BaseMsg):
@@ -84,6 +85,7 @@ class InfoMsg(BaseMsg):
         self.workerId = kwargs['workerId']
         self.state = kwargs['state']
         self.uuid = kwargs.get('uuid', "")
+        self.mem = kwargs.get('mem', {})
 
 
 ##################################################################

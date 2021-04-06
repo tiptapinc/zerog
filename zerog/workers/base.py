@@ -188,6 +188,24 @@ class BaseWorker(object):
             log.info(
                 "worker {0} running job {1}".format(self.pid, uuid)
             )
+            if job.running:
+                # the only way this can be true is if the job was killed
+                # while running and no exception was caught. Most likely
+                # that means the job was timed out because it failed to
+                # call the keepalive function
+                job.record_error(
+                    zerog.jobs.INTERNAL_ERROR,
+                    "job was killed - likely out of memory\n"
+                )
+                resultCode = job.continue_running()
+                if resultCode == zerog.jobs.NO_RESULT:
+                    job.record_event("Killed (memory error?) - Restarting")
+                else:
+                    job.record_event("Killed (memory error?) - Finished")
+                    self.record_result(resultCode)
+                    queueJob.delete()
+                    return
+
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=uuid))
             )
