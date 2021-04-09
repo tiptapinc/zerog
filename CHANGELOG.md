@@ -1,3 +1,6 @@
+## v0.0.22
+* clean up beanstalkc socket error handling
+
 ## v0.0.21
 * detach from ctrl queue after sending message
 

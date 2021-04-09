@@ -156,12 +156,13 @@ def run_job(make_job_and_worker, clear_queue):
 
 
 @pytest.fixture
-def zerog_app(make_datastore, make_queue):
+def zerog_app(make_datastore, make_queue, clear_queue):
     """
     Creates a zerog app with specified handlers
     """
+    server = None
     def _func(jobClasses, handlers):
-        # pdb.set_trace()
+        nonlocal server
         server = zerog.Server(
             "zerog_test",
             make_datastore,
@@ -172,4 +173,6 @@ def zerog_app(make_datastore, make_queue):
         )
         return server
 
-    return _func
+    yield _func
+    server.kill_worker()
+    clear_queue(server.ctrlChannel.queue)

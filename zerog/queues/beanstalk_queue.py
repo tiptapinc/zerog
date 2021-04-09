@@ -7,6 +7,7 @@ Simple beanstalkd client
 """
 import beanstalkc
 import json
+import time
 
 import logging
 log = logging.getLogger(__name__)
@@ -17,8 +18,27 @@ class BeanstalkdQueue(object):
         self.host = host
         self.port = port
         self.queueName = queueName
-        self.bean = beanstalkc.Connection(host=host, port=port)
-        self.attach()
+        self.make_connection()
+
+    def make_connection(self, retries=0):
+        while True:
+            try:
+                self.bean = beanstalkc.Connection(
+                    host=self.host, port=self.port
+                )
+                self.attach()
+                return
+
+            except beanstalkc.SocketError:
+                pass
+
+            if retries == 0:
+                break
+
+            retries -= 1
+            time.sleep(5)
+
+        raise beanstalkc.SocketError
 
     def put(self, data, **kwargs):
         return self.do_bean("put", json.dumps(data), **kwargs)
@@ -41,15 +61,11 @@ class BeanstalkdQueue(object):
         return self.do_bean("tubes")
 
     def do_bean(self, method, *args, **kwargs):
-        for _ in range(3):
-            try:
-                return getattr(self.bean, method)(*args, **kwargs)
+        try:
+            return getattr(self.bean, method)(*args, **kwargs)
 
-            except beanstalkc.SocketError:
-                log.warning("lost connection to beanstalkd - reconnecting")
-                self.__init__(self.host, self.port, self.queueName)
-
-        raise beanstalkc.SocketError
+        except beanstalkc.SocketError:
+            self.make_connection(3)
 
 
 class QueueJob(beanstalkc.Job):
