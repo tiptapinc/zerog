@@ -135,19 +135,22 @@ def test_send_and_get_message(make_channel, clear_queue):
     assert sendmsg.dump() == getmsg.dump()
 
 
-def test_make_and_parse_worker_id(server_app):
-    app = server_app()
+def test_make_and_parse_worker_id():
+    testhost = "localhost"
+    testname = "Frank"
+    testpid = 55
+
     workerId = make_worker_id(
-        "zerog", app.thisHost, app.name, app.pid
+        "zerog", testhost, testname, testpid
     )
     assert isinstance(workerId, str)
 
     parsed = parse_worker_id(workerId)
     assert parsed is not None
     assert parsed['workerType'] == "zerog"
-    assert parsed['thisHost'] == app.thisHost
-    assert parsed['serviceName'] == app.name
-    assert parsed['pid'] == app.pid
+    assert parsed['host'] == testhost
+    assert parsed['serviceName'] == testname
+    assert parsed['pid'] == testpid
 
 
 def test_server_makes_queues(server_app, make_channel):
