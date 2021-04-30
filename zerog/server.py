@@ -196,7 +196,12 @@ class Server(tornado.web.Application):
         if workerStatus != self.workerStatus:
             if workerStatus == psutil.STATUS_ZOMBIE:
                 self.proc.join(0)
-                log.info(f"server {self.pid}, worker {self.pid} is zombie.")
+                exitcode = self.proc.exitcode
+                if exitcode != 0:
+                    log.info(
+                        f"server {self.pid}, worker {self.pid} was killed. "
+                        f"exitcode: {exitcode}"
+                    )
                 self.runningJobUuid = ""
                 restart = True
 

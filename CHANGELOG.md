@@ -1,3 +1,6 @@
+## v0.0.23
+* suicide worker after running a job to return memory to OS
+
 ## v0.0.22
 * clean up beanstalkc socket error handling
 
