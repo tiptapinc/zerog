@@ -106,6 +106,7 @@ class BaseWorker(object):
                 queueJob = self.queue.reserve(timeout=0)
                 if queueJob:
                     self._process_queue_job(queueJob)
+                    return      # suicide to return memory
 
             # check if parent is still alive. Suicide if not.
             if self._check_parent() is False:
@@ -271,8 +272,10 @@ class BaseWorker(object):
             # try
             msg = traceback.format_exc()
             job.record_error(zerog.jobs.INTERNAL_ERROR, msg, exception=e)
-            msg += "server {0} jobType {1} job {2}".format(
-                self.pid, job.JOB_TYPE, job.uuid
+            mem = psutil.virtual_memory().available
+            msg += (
+                f"server {self.pid}, jobType {job.JOB_TYPE}, "
+                f"job {job.uuid}, available memory {mem}"
             )
             log.error(msg)
 
