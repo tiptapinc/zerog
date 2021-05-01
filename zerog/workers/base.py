@@ -21,6 +21,8 @@ MAX_RESERVES = 3
 
 POLL_INTERVAL = 2
 
+MEGA = 2 ** 20
+
 
 class BaseWorker(object):
     """
@@ -47,7 +49,6 @@ class BaseWorker(object):
     def __init__(
         self, name, makeDatastore, makeQueue, registry, conn, **kwargs
     ):
-        log.info("created worker, self: {0}".format(self))
         self.name = name
         self.makeDatastore = makeDatastore
         self.registry = registry
@@ -67,11 +68,15 @@ class BaseWorker(object):
             - Runs jobs
         """
         self.run_init()
+
+        # flush any leftover parent messages
+        while self.conn.poll():
+            self.conn.recv()
+
         self.conn.send(json.dumps(dict(type="ready", value=True)))
         log.info(
-            "starting {0} worker {1}".format(
-                self.name, self.pid
-            )
+            f"{self.name}:{self.parentPid}:{self.pid} | "
+            "starting worker process"
         )
         self.run_loop()
 
@@ -97,7 +102,10 @@ class BaseWorker(object):
             if self.conn.poll(POLL_INTERVAL) is True:
                 msg = self.conn.recv().lower()
                 if msg == "drain":
-                    log.info(f"worker {self.pid} start draining")
+                    log.info(
+                        f"{self.name}:{self.parentPid}:{self.pid} | "
+                        "worker draining"
+                    )
                     self.draining = True
 
             if not self.draining:
@@ -110,7 +118,9 @@ class BaseWorker(object):
 
             # check if parent is still alive. Suicide if not.
             if self._check_parent() is False:
-                log.info("worker {0} orphaned".format(self.pid))
+                log.info(
+                    f"{self.name}:{self.parentPid}:{self.pid} | orphaned"
+                )
                 return
 
     def _check_parent(self):
@@ -137,9 +147,11 @@ class BaseWorker(object):
         #
         # body of the queue job is just a uuid that we can use to retrieve
         # the full job
-        log.info("process_queue_job, self: {0}".format(self))
         uuid = json.loads(queueJob.body)
-        log.info("worker {0} reserved job {1}".format(self.pid, uuid))
+        log.info(
+            f"{self.name}:{self.parentPid}:{self.pid} | "
+            f"reserved {uuid}"
+        )
 
         job = None
         try:
@@ -187,7 +199,8 @@ class BaseWorker(object):
             # return values by converting to defaults:
             #
             log.info(
-                "worker {0} running job {1}".format(self.pid, uuid)
+                f"{self.name}:{self.parentPid}:{self.pid} | "
+                f"running jobType: {job.JOB_TYPE}, uuid: {job.uuid}"
             )
             if job.running:
                 # the only way this can be true is if the job was killed
@@ -212,11 +225,9 @@ class BaseWorker(object):
             )
             job.update_attrs(running=True)
             returnVal = job.run()
-
             log.info(
-                "worker {0} job {1}, returned {2}".format(
-                    self.pid, uuid, returnVal
-                )
+                f"{self.name}:{self.parentPid}:{self.pid} | "
+                f"completed {job.JOB_TYPE} {job.uuid}, returnVal {returnVal}"
             )
             if isinstance(returnVal, (tuple, list)):
                 # return value is a tuple, as expected, or we can accept
@@ -259,9 +270,8 @@ class BaseWorker(object):
         except couchbase.exceptions.TimeoutError:
             # this is a temporary hack because we're seeing timeout errors
             log.error(
-                "worker {0} job {1}, couchbase timeout error".format(
-                    self.pid, uuid
-                )
+                f"{self.name}:{self.parentPid}:{self.pid} | "
+                "couchbase timeout error"
             )
             resultCode = zerog.jobs.NO_RESULT
             delay = 30
@@ -272,10 +282,12 @@ class BaseWorker(object):
             # try
             msg = traceback.format_exc()
             job.record_error(zerog.jobs.INTERNAL_ERROR, msg, exception=e)
-            mem = psutil.virtual_memory().available
+            mem = psutil.virtual_memory()
+            available = f"{round(mem.available / MEGA)} MiB"
             msg += (
-                f"server {self.pid}, jobType {job.JOB_TYPE}, "
-                f"job {job.uuid}, available memory {mem}"
+                f"{self.name}:{self.parentPid}:{self.pid} | "
+                f"jobType: {job.JOB_TYPE}, uuid: {job.uuid}, "
+                f"mem_available: {available}"
             )
             log.error(msg)
 

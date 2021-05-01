@@ -6,9 +6,8 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 import atexit
 import multiprocessing
 import json
-import os
 import psutil
-import signal
+import time
 import tornado.web
 import tornado.ioloop
 
@@ -21,6 +20,12 @@ log = logging.getLogger(__name__)
 HANDLERS = []
 POLL_INTERVAL = 2
 POLL_JITTER = 0.1
+
+ACTIVE_IDLE = "activeIdle"
+ACTIVE_RUNNING = "activeRunning"
+DRAINING_IDLE = "drainingIdle"
+DRAINING_RUNNING = "drainingRunning"
+DRAINING_DOWN = "drainingDown"
 
 
 class Server(tornado.web.Application):
@@ -58,11 +63,11 @@ class Server(tornado.web.Application):
         **kwargs
     ):
         self.pid = psutil.Process().pid
-        log.info("initializing ZeroG server {0}".format(self.pid))
 
         self.name = name
         self.thisHost = thisHost
         self.workerId = make_worker_id("zerog", thisHost, name, self.pid)
+        log.info(f"workerId: {self.workerId} | initializing")
 
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
@@ -74,7 +79,7 @@ class Server(tornado.web.Application):
         self.registry = zerog.JobRegistry()
         self.registry.add_classes(jobClasses)
 
-        self.state = "polling"
+        self.state = ACTIVE_IDLE
         self.workerStatus = ""
         self.runningJobUuid = ""
 
@@ -98,11 +103,11 @@ class Server(tornado.web.Application):
         """
         Makes sure worker dies on exit
         """
-        log.info(f"server {self.pid} exiting")
+        log.info(f"{self.name}:{self.pid} | exiting")
         self.kill_worker()
 
     def make_worker(self, makeDatastore, makeQueue):
-        log.info(f"server {self.pid} creating worker")
+        log.info(f"{self.name}:{self.pid} | creating worker")
         self.parentConn, self.childConn = multiprocessing.Pipe()
         self.worker = zerog.BaseWorker(
             self.name, makeDatastore, makeQueue, self.registry, self.childConn
@@ -117,14 +122,15 @@ class Server(tornado.web.Application):
         self.proc = multiprocessing.Process(target=self.worker.run)
         self.proc.daemon = True
         self.proc.start()
-        log.info(f"server {self.pid} started worker {self.proc.pid}")
+        self.state = ACTIVE_IDLE
+        log.info(f"{self.name}:{self.pid}:{self.proc.pid} | started worker")
 
     def kill_worker(self, killJob=False):
         self.do_poll()
 
         log.info(
-            f"server {self.pid} killing worker {self.proc.pid}, "
-            f"activeJob: {self.runningJobUuid}"
+            f"{self.name}:{self.pid}:{self.proc.pid} | "
+            f"killing worker | activeJob: {self.runningJobUuid}"
         )
         self.proc.kill()
 
@@ -141,25 +147,43 @@ class Server(tornado.web.Application):
                 job.record_event("System restart")
 
     def drain(self):
-        log.info(f"server {self.pid} worker {self.proc.pid} stop polling")
-        self.parentConn.send("drain")
-        self.state = "draining"
+        if self.state == ACTIVE_IDLE:
+            self.state = DRAINING_IDLE
+            log.info(
+                f"{self.name}:{self.pid}:{self.proc.pid} | drain - no job"
+            )
+            self.parentConn.send("drain")
+
+        elif self.state == ACTIVE_RUNNING:
+            self.state = DRAINING_RUNNING
+            log.info(
+                f"{self.name}:{self.pid}:{self.proc.pid} | "
+                f"drain - finish job {self.runningJobUuid}"
+            )
+        else:
+            log.info(
+                f"{self.name}:{self.pid}:{self.proc.pid} | "
+                f"drain - state {self.state}")
 
     def process_worker_message(self, msg):
         msgType = msg.get('type')
         if not msgType:
-            log.error(f"server {self.pid} worker message has no type\n{msg}")
+            log.error(
+                f"{self.name}:{self.pid}:{self.proc.pid} | "
+                f"worker message has no type\n{msg}"
+            )
             return
 
         if msgType == 'runningJobUuid':
             newRunningJobUuid = msg['value']
             if newRunningJobUuid:
                 kwargs = dict(action="start", uuid=newRunningJobUuid)
-                self.state = "runningJob"
+                if self.state in [ACTIVE_IDLE, ACTIVE_RUNNING]:
+                    self.state = ACTIVE_RUNNING
+                else:
+                    self.state = DRAINING_RUNNING
             else:
                 kwargs = dict(action="end", uuid=self.runningJobUuid)
-                if self.state != "draining":
-                    self.state = "polling"
 
             self.runningJobUuid = newRunningJobUuid
             kwargs['workerId'] = self.workerId
@@ -183,7 +207,8 @@ class Server(tornado.web.Application):
                 msg = json.loads(text)
             except (TypeError, json.decoder.JSONDecodeError) as e:
                 log.error(
-                    f"server {self.pid} can't parse worker message\n{msg}\n{e}"
+                    f"{self.name}:{self.pid}:{self.proc.pid} | "
+                    f"can't parse worker message\n{msg}\n{e}"
                 )
             else:
                 self.process_worker_message(msg)
@@ -199,25 +224,35 @@ class Server(tornado.web.Application):
                 exitcode = self.proc.exitcode
                 if exitcode != 0:
                     log.info(
-                        f"server {self.pid}, worker {self.pid} was killed. "
-                        f"exitcode: {exitcode}"
+                        f"{self.name}:{self.pid}:{self.proc.pid} | "
+                        f"killed. exitcode: {exitcode}"
                     )
                 self.runningJobUuid = ""
                 restart = True
 
             elif workerStatus == "NoSuchProcess":
                 log.info(
-                    "server {0}, worker {1} is gone".format(
-                        self.pid, self.proc.pid
-                    )
+                    f"{self.name}:{self.pid}:{self.proc.pid} | "
+                    "no such process"
                 )
                 restart = True
             else:
                 restart = False
 
+            log.info(
+                f"{self.name}:{self.pid}:{self.proc.pid} | "
+                f"workerStatus: {workerStatus}, state: {self.state}"
+            )
             if restart:
-                log.info("server {0} restarting worker".format(self.pid))
-                self.start_worker()
+                if self.state in [ACTIVE_IDLE, ACTIVE_RUNNING]:
+                    log.info(
+                        f"{self.name}:{self.pid}:{self.proc.pid} | "
+                        "restarting worker"
+                    )
+                    self.state = ACTIVE_IDLE
+                    self.start_worker()
+                else:
+                    self.state = DRAINING_DOWN
 
             self.workerStatus = workerStatus
 
@@ -225,12 +260,23 @@ class Server(tornado.web.Application):
         msg = self.ctrlChannel.get_msg()
         if msg:
             if msg.msgtype == "requestInfo":
+                try:
+                    used = psutil.Process(
+                        self.proc.pid
+                    ).memory_full_info().uss
+                except psutil.NoSuchProcess:
+                    used = 0
+
+                mem = dict(
+                    available=psutil.virtual_memory().available,
+                    used=used
+                )
                 infomsg = make_msg(
                     "info",
                     workerId=self.workerId,
                     state=self.state,
                     uuid=self.runningJobUuid,
-                    mem=dict(psutil.virtual_memory()._asdict())
+                    mem=mem
                 )
                 self.updatesChannel.send_msg(infomsg)
 

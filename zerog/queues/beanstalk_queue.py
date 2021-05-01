@@ -19,6 +19,7 @@ class BeanstalkdQueue(object):
         self.port = port
         self.queueName = queueName
         self.make_connection()
+        self.attach()
 
     def make_connection(self, retries=0):
         while True:
@@ -26,7 +27,6 @@ class BeanstalkdQueue(object):
                 self.bean = beanstalkc.Connection(
                     host=self.host, port=self.port
                 )
-                self.attach()
                 return
 
             except beanstalkc.SocketError:

@@ -9,12 +9,6 @@ import json
 from marshmallow import Schema, fields
 from marshmallow.validate import OneOf
 
-VALID_STATES = [
-    "polling",
-    "runningJob",
-    "draining"
-]
-
 
 ##################################################################
 # base class for messages. shouldn't ever be sent as-is
@@ -68,10 +62,7 @@ class JobMsg(BaseMsg):
 
 class InfoMsgSchema(BaseSchema):
     workerId = fields.String(required=True)
-    state = fields.String(
-        validate=OneOf(VALID_STATES),
-        required=True
-    )
+    state = fields.String(required=True)
     uuid = fields.String()
     mem = fields.Dict()
 
