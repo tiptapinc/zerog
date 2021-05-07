@@ -1,3 +1,10 @@
+## v0.0.24
+* update server state management
+* fix issues with pipe buffer getting filled up
+* update logging info
+* make memory info in infomsg more concise
+* include memory info in WorkerManager workerData
+
 ## v0.0.23
 * suicide worker after running a job to return memory to OS
 

@@ -34,7 +34,8 @@ class WorkerManager(object):
                 dict(
                     workerId=workerId,
                     state=workerData['state'],
-                    runningJobUuid=workerData['runningJobUuid']
+                    runningJobUuid=workerData['runningJobUuid'],
+                    mem=workerData['mem']
                 )
             )
 
@@ -53,7 +54,7 @@ class WorkerManager(object):
             return False
 
         drained = [
-            (w['state'] == "draining" and not w['runningJobUuid'])
+            ("draining" in w['state'] and not w['runningJobUuid'])
             for w in workers
         ]
         return all(drained)
@@ -167,6 +168,7 @@ class WorkerManager(object):
         workerData = dict(
             alive=True,
             state=msg.state,
-            runningJobUuid=msg.uuid
+            runningJobUuid=msg.uuid,
+            mem=msg.mem
         )
         self.workers[workerId] = workerData
