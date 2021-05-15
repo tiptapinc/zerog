@@ -21,24 +21,27 @@ class BeanstalkdQueue(object):
         self.make_connection()
         self.attach()
 
-    def make_connection(self, retries=0):
-        while True:
-            try:
-                self.bean = beanstalkc.Connection(
-                    host=self.host, port=self.port
-                )
-                return
+    def make_connection(self):
+        self.bean = beanstalkc.Connection(
+            host=self.host, port=self.port
+        )
+        # while True:
+        #     try:
+        #         self.bean = beanstalkc.Connection(
+        #             host=self.host, port=self.port
+        #         )
+        #         return
 
-            except beanstalkc.SocketError:
-                pass
+        #     except beanstalkc.SocketError:
+        #         pass
 
-            if retries == 0:
-                break
+        #     if retries == 0:
+        #         break
 
-            retries -= 1
-            time.sleep(5)
+        #     retries -= 1
+        #     time.sleep(1)
 
-        raise beanstalkc.SocketError
+        # raise beanstalkc.SocketError
 
     def put(self, data, **kwargs):
         return self.do_bean("put", json.dumps(data), **kwargs)
@@ -47,6 +50,7 @@ class BeanstalkdQueue(object):
         return self.do_bean("reserve", **kwargs)
 
     def attach(self):
+        self.do_bean("ignore", "default")
         self.do_bean("use", self.queueName)
         self.do_bean("watch", self.queueName)
 
@@ -61,11 +65,35 @@ class BeanstalkdQueue(object):
         return self.do_bean("tubes")
 
     def do_bean(self, method, *args, **kwargs):
+        # try to execute the method.
+        #   - if it succeeds, return the result
+        #   - if there's a socket error, fall through to the retry logic
+        #   - any other exception is not caught
         try:
             return getattr(self.bean, method)(*args, **kwargs)
 
         except beanstalkc.SocketError:
-            self.make_connection(3)
+            pass
+
+        # initial attempt to execute the method failed, but we may be
+        # able to re-establish the beanstalkd connection and then execute
+        # successfully
+        log.info("attempting to connect to beanstalkd queue")
+        for _ in range(2):
+            try:
+                self.make_connection()
+                self.attach()
+                result = getattr(self.bean, method)(*args, **kwargs)
+                log.info("successfully reconnected")
+                return result
+
+            except beanstalkc.SocketError:
+                pass
+
+            time.sleep(1)
+
+        log.info("failed to connect to beanstalkd queue")
+        raise beanstalkc.SocketError
 
 
 class QueueJob(beanstalkc.Job):

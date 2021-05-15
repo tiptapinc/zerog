@@ -113,10 +113,13 @@ class Server(tornado.web.Application):
             self.name, makeDatastore, makeQueue, self.registry, self.childConn
         )
         self.start_worker()
-
-        tornado.ioloop.IOLoop.instance().call_later(
-            0, self.poll
+        self.callback = tornado.ioloop.PeriodicCallback(
+            self.do_poll, POLL_INTERVAL * 1000
         )
+        self.callback.start()
+        # tornado.ioloop.IOLoop.instance().call_later(
+        #     0, self.poll
+        # )
 
     def start_worker(self):
         self.proc = multiprocessing.Process(target=self.worker.run)

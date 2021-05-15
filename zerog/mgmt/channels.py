@@ -23,6 +23,9 @@ data
 """
 from .messages import make_msg, make_msg_from_json
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class MgmtChannel(object):
     def __init__(self, queue):
@@ -66,7 +69,12 @@ class MgmtChannel(object):
             # could wrap this in a try:except to catch malformed messages
             # but they really shouldn't be happening so I think it's better
             # to let any exceptions trickle up
-            msg = make_msg_from_json(queueJob.body)
+            try:
+                msg = make_msg_from_json(queueJob.body)
+            except TypeError:
+                log.warning(
+                    f"{self.queue.queueName} bad message: {queueJob.body}"
+                )
             queueJob.delete()
             return msg
 

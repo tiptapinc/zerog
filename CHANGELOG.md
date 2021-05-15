@@ -1,3 +1,6 @@
+## v0.0.25
+* fix beanstalk client reconnect/retry
+
 ## v0.0.24
 * update server state management
 * fix issues with pipe buffer getting filled up
