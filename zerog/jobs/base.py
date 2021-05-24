@@ -357,6 +357,18 @@ class BaseJob(ABC):
 
     def progress(self):
         """
+        Returns a job's completeness and result.
+
+        Override this method to add additional return values. Use super
+        to call this method and get the base return values.
+        """
+        return dict(
+            completeness=self.completeness,
+            result=self.resultCode
+        )
+
+    def info(self):
+        """
         Returns a job's completeness, result, events, and errors.
 
         Override this method to add additional return values. Use super
