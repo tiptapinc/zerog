@@ -1,3 +1,7 @@
+## v0.0.26
+* limit data returned in job.progress method
+* add job.info method to return complete job info
+
 ## v0.0.25
 * fix beanstalk client reconnect/retry
 
