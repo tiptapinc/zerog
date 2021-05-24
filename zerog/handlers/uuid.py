@@ -74,3 +74,10 @@ class GetDataHandler(UuidHandler):
         self.complete(200, output=json.dumps(
             job.get_data(), indent=4, allow_nan=False)
         )
+
+
+class InfoHandler(UuidHandler):
+    def do_get(self, job):
+        self.complete(200, output=json.dumps(
+            job.info(), indent=4, allow_nan=False)
+        )
