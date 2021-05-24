@@ -2,7 +2,7 @@ UPDATES_CHANNEL_NAME = "updates"
 
 from zerog.datastores import CouchbaseDatastore
 from zerog.handlers import (
-    BaseHandler, GetDataHandler, ProgressHandler, RunJobHandler
+    BaseHandler, GetDataHandler, ProgressHandler, RunJobHandler, InfoHandler
 )
 from zerog.jobs import BaseJob, BaseJobSchema, NO_RESULT
 from zerog.queues import BeanstalkdQueue
