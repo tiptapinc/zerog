@@ -1,3 +1,6 @@
+## v0.0.27
+* fix 'BaseWorker' object has no attribute 'record_result'
+
 ## v0.0.26
 * limit data returned in job.progress method
 * add job.info method to return complete job info
