@@ -348,10 +348,14 @@ class BaseJob(ABC):
         if self.cas == 0:
             self.save()
 
-        # thought: does this ever enqueue the job but then fail on the update?
-        # what happens then?
         kwargs['ttr'] = kwargs.get('ttr', DEFAULT_TTR)
         queueJobId = self.queue.put(self.uuid, **kwargs)
+
+        # if we don't get a valid job id back from the attempt to enqueue,
+        # set queueJobId to -1 so we can later see that there was a problem
+        if not queueJobId:
+            log.warning(f"{self.jobType} {self.uuid} enqueue failed")
+            queueJobId = -1
 
         self.update_attrs(queueKwargs=kwargs, queueJobId=queueJobId)
 
