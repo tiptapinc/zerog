@@ -1,3 +1,6 @@
+## v0.0.28
+* set queueJobId to -1 on failed enqueue
+
 ## v0.0.27
 * fix 'BaseWorker' object has no attribute 'record_result'
 
