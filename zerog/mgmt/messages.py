@@ -225,7 +225,7 @@ def get_msg(queue, tube, **kwargs):
         # but they really shouldn't be happening so I think it's better
         # to let any exceptions trickle up
         msg = make_msg_from_json(queueJob.body)
-        queueJob.delete()
+        queue.delete(queueJob.jid)
 
     queue.do_bean("ignore", tube)
     return msg

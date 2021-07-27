@@ -164,7 +164,7 @@ class BaseWorker(object):
         if job is None:
             # either job wasn't found or there was an exception while
             # loading it
-            stats = queueJob.stats()
+            stats = self.queue.job_stats(queueJob.jid)
             msg += "worker {0} failed to load {1}, queue stats: {2}".format(
                 self.pid, uuid, stats
             )
@@ -182,9 +182,9 @@ class BaseWorker(object):
                 log.error("worker {0}, job {1}: {2}".format(
                     self.pid, uuid, msg)
                 )
-                queueJob.delete()
+                self.queue.delete(queueJob.jid)
             else:
-                queueJob.release(delay=30)
+                self.queue.release(queueJob.jid, delay=30)
 
             return
 
@@ -217,7 +217,7 @@ class BaseWorker(object):
                 else:
                     job.record_event("Killed (memory error?) - Finished")
                     job.record_result(resultCode)
-                    queueJob.delete()
+                    self.queue.delete(queueJob.jid)
                     return
 
             self.conn.send(
@@ -252,7 +252,7 @@ class BaseWorker(object):
         except (zerog.jobs.ErrorFinish, zerog.jobs.WarningFinish):
             # error has already been recorded and job is done
             job.record_event("Error - finished")
-            queueJob.delete()
+            self.queue.delete(queueJob.jid)
             return
 
         except SystemExit:
@@ -304,7 +304,7 @@ class BaseWorker(object):
             )
             job.update_attrs(running=False)
 
-        queueJob.delete()
+        self.queue.delete(queueJob.jid)
         if resultCode == zerog.jobs.NO_RESULT:
             job.enqueue(delay=delay)
         else:

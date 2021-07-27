@@ -18,30 +18,25 @@ class BeanstalkdQueue(object):
         self.host = host
         self.port = port
         self.queueName = queueName
-        self.make_connection()
-        self.attach()
+
+        for _ in range(3):
+            try:
+                self.make_connection()
+                self.attach()
+
+            except beanstalkc.SocketError:
+                pass
+
+            time.sleep(2)
+
+        # we can only get here after a beanstalkc.SocketError
+        log.warning("failed to connect to beanstalkd queue")
+        raise beanstalkc.SocketError
 
     def make_connection(self):
         self.bean = beanstalkc.Connection(
             host=self.host, port=self.port
         )
-        # while True:
-        #     try:
-        #         self.bean = beanstalkc.Connection(
-        #             host=self.host, port=self.port
-        #         )
-        #         return
-
-        #     except beanstalkc.SocketError:
-        #         pass
-
-        #     if retries == 0:
-        #         break
-
-        #     retries -= 1
-        #     time.sleep(1)
-
-        # raise beanstalkc.SocketError
 
     def put(self, data, **kwargs):
         return self.do_bean("put", json.dumps(data), **kwargs)
@@ -61,6 +56,12 @@ class BeanstalkdQueue(object):
     def delete(self, jid):
         self.do_bean("delete", jid)
 
+    def release(self, jid, **kwargs):
+        self.do_bean("release", jid, **kwargs)
+
+    def stats_job(self, jid):
+        self.do_bean("stats_job", jid)
+
     def list_all_queues(self):
         return self.do_bean("tubes")
 
@@ -78,7 +79,7 @@ class BeanstalkdQueue(object):
         # initial attempt to execute the method failed, but we may be
         # able to re-establish the beanstalkd connection and then execute
         # successfully
-        log.info("attempting to connect to beanstalkd queue")
+        log.info("reconnecting to beanstalkd queue")
         for _ in range(2):
             try:
                 self.make_connection()
@@ -92,8 +93,8 @@ class BeanstalkdQueue(object):
 
             time.sleep(1)
 
-        log.info("failed to connect to beanstalkd queue")
-        raise beanstalkc.SocketError
+        # we can only get here after a beanstalkc.SocketError
+        log.warning("failed to reconnect to beanstalkd queue")
 
 
 class QueueJob(beanstalkc.Job):

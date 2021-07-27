@@ -75,7 +75,7 @@ class MgmtChannel(object):
                 log.warning(
                     f"{self.queue.queueName} bad message: {queueJob.body}"
                 )
-            queueJob.delete()
+            self.queue.delete(queueJob.jid)
             return msg
 
         return None

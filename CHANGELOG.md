@@ -1,3 +1,6 @@
+## v0.0.29
+* update beanstalkd error handling
+
 ## v0.0.28
 * set queueJobId to -1 on failed enqueue
 
