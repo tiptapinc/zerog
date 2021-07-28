@@ -38,16 +38,18 @@ class BeanstalkdQueue(object):
             host=self.host, port=self.port
         )
 
+    def attach(self):
+        # this needs to be called on a reconnect, so it can't use
+        # do_bean, because that would be recursive
+        self.bean.ignore("default")
+        self.bean.use(self.queueName)
+        self.bean.watch(self.queueName)
+
     def put(self, data, **kwargs):
         return self.do_bean("put", json.dumps(data), **kwargs)
 
     def reserve(self, **kwargs):
         return self.do_bean("reserve", **kwargs)
-
-    def attach(self):
-        self.do_bean("ignore", "default")
-        self.do_bean("use", self.queueName)
-        self.do_bean("watch", self.queueName)
 
     def detach(self):
         self.do_bean("use", "default")
