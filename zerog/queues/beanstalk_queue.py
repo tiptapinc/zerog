@@ -23,6 +23,7 @@ class BeanstalkdQueue(object):
             try:
                 self.make_connection()
                 self.attach()
+                return
 
             except beanstalkc.SocketError:
                 pass
