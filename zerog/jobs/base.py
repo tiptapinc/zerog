@@ -43,6 +43,10 @@ class ErrorFinish(Exception):
     pass
 
 
+class WarningContinue(Exception):
+    pass
+
+
 class WarningFinish(Exception):
     pass
 
@@ -282,6 +286,10 @@ class BaseJob(ABC):
     def job_log_error(self, errorCode, msg):
         log.error(msg)
         self.record_error(errorCode, msg)
+
+    def raise_warning_continue(self, resultCode, msg):
+        self.job_log_warning(msg)
+        raise WarningContinue
 
     def raise_warning_finish(self, resultCode, msg):
         self.job_log_warning(msg)
