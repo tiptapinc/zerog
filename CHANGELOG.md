@@ -1,3 +1,6 @@
+##v0.0.29
+* add raise_warning_continue method to jobs
+
 ## v0.0.28
 * set queueJobId to -1 on failed enqueue
 
