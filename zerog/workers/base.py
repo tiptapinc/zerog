@@ -261,8 +261,8 @@ class BaseWorker(object):
             resultCode = zerog.jobs.NO_RESULT
             delay = 30
 
-        except zerog.jobs.ErrorContinue:
-            # Error has been recorded. Job will restart.
+        except (zerog.jobs.ErrorContinue, zerog.jobs.WarningContinue):
+            # Error/warning has been recorded. Job will restart.
             job.record_event("Error - restarting")
             resultCode = job.continue_running()
             delay = 30

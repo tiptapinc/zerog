@@ -1,4 +1,7 @@
 ##v0.0.29
+* don't raise exception for raise_warning_continue
+
+##v0.0.29
 * add raise_warning_continue method to jobs
 
 ## v0.0.28
