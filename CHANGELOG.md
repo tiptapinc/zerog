@@ -1,4 +1,7 @@
-##v0.0.29
+##v0.0.31
+* add WarningContinue exception to /jobs/__init__.py
+
+##v0.0.30
 * don't raise exception for raise_warning_continue
 
 ##v0.0.29

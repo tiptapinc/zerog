@@ -6,5 +6,6 @@ from .base import (
     NO_RESULT,
     ErrorContinue,
     ErrorFinish,
+    WarningContinue,
     WarningFinish
 )
