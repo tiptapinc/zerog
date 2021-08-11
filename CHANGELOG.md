@@ -1,3 +1,6 @@
+##v0.0.32
+* coerce msgs to str
+
 ##v0.0.31
 * add WarningContinue exception to /jobs/__init__.py
 

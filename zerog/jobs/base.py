@@ -288,20 +288,20 @@ class BaseJob(ABC):
         self.record_error(errorCode, msg)
 
     def raise_warning_continue(self, resultCode, msg):
-        self.job_log_warning(msg)
+        self.job_log_warning(str(msg))
         raise WarningContinue
 
     def raise_warning_finish(self, resultCode, msg):
-        self.job_log_warning(msg)
+        self.job_log_warning(str(msg))
         self.record_result(resultCode)
         raise WarningFinish
 
     def raise_error_continue(self, errorCode, msg):
-        self.job_log_error(errorCode, msg)
+        self.job_log_error(errorCode, str(msg))
         raise ErrorContinue
 
     def raise_error_finish(self, errorCode, msg):
-        self.job_log_error(errorCode, msg)
+        self.job_log_error(errorCode, str(msg))
         self.record_result(errorCode)
         raise ErrorFinish
 
