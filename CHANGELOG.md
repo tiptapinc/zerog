@@ -1,3 +1,6 @@
+##v0.0.33
+* don't set daemon flag for worker process
+
 ##v0.0.32
 * coerce msgs to str
 
