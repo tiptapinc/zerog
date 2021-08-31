@@ -260,9 +260,10 @@ class Server(tornado.web.Application):
         if msg:
             if msg.msgtype == "requestInfo":
                 try:
-                    used = psutil.Process(
-                        self.proc.pid
-                    ).memory_full_info().uss
+                    p = psutil.Process(self.pid)
+                    used = p.memory_full_info().uss
+                    for kid in p.children(recursive=True):
+                        used += kid.memory_full_info().uss
                 except psutil.NoSuchProcess:
                     used = 0
 

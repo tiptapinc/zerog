@@ -1,3 +1,6 @@
+##v0.0.34
+* include child process memory usage in total for worker
+
 ##v0.0.33
 * don't set daemon flag for worker process
 
