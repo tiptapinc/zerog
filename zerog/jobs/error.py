@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
+# Copyright (c) 2017-2021 MotiveMetrics. All rights reserved.
 """
-Copyright (c) 2020 MotiveMetrics. All rights reserved.
-
+ZeroG ErrorSchema and Error class definitions
 """
 import datetime
 
@@ -24,6 +24,9 @@ class ErrorSchema(Schema):
 
 
 class Error(object):
+    """
+    Error object used to record errors in a ZeroG BaseJob
+    """
     def __init__(self, **kwargs):
         self.timeStamp = kwargs.get('timeStamp', datetime.datetime.utcnow())
         self.errorCode = kwargs['errorCode']
