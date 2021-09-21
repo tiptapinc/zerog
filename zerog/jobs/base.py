@@ -128,6 +128,7 @@ class BaseJob(ABC):
         fails. You MAY override this attribute.
 
     Subclasses MUST
+
         - call the base ``__init__()`` using ``super``
         - override the ``run()`` method
     """
