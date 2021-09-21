@@ -1,3 +1,6 @@
+##v0.0.35
+* update documentation to use sphinx/readthedocs
+
 ##v0.0.34
 * include child process memory usage in total for worker
 

@@ -185,7 +185,7 @@ Get It Now
 ::
 
 
-    $ pip install -e git+https://github.com/tiptapinc/zerog.git@0.0.34#egg=zerog
+    $ pip install -e git+https://github.com/tiptapinc/zerog.git#egg=zerog
 
 
 Documentation
