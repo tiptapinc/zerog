@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 # encoding: utf-8
+# Copyright (c) 2017-2021 MotiveMetrics. All rights reserved.
 """
-Copyright (c) 2020 MotiveMetrics. All rights reserved.
+ZeroG Server class definition
+"""
 
-"""
 import atexit
 import multiprocessing
 import json
@@ -30,27 +32,32 @@ DRAINING_DOWN = "drainingDown"
 
 class Server(tornado.web.Application):
     """
-    Initialize a ZeroG Server, which is a subclass of Tornado's
-    Application class
+    Base ZeroG server class
 
-    Args:
-        name: service name for this zerog server
-        makeDatastore: function to create a Datastore object that can be
-                       used to persist & retrieve jobs.
+    :param name: service name for this zerog server
+    :type name: str
 
-        makeQueue: function to create Queue objects for posting jobs & for
-                   inter-server communications
+    :param makeDatastore: function to create a Datastore object that can be
+        used to persist & retrieve jobs.
+    :type makeDatastore: function
 
-        jobClasses: List of job classes (derived from BaseClass) that
-                    this ZeroG instance will support. Additional job
-                    classes can be added later with the add_to_registry
-                    method
+    :param makeQueue: function to create Queue objects for posting jobs & for
+        inter-server communications
+    :type makeQueue: function
 
-        thisHost: host IP address or hostname
+    :param jobClasses: List of job classes (derived from BaseClass) that
+        this ZeroG instance will support. Additional job classes can be added
+        later with the add_to_registry method
+    :type jobClasses: list
 
-        handlers: request handlers to be passed to parent __init__ method
+    :param thisHost: host IP address or hostname
+    :type thisHost: str
 
-        **kwargs: passed to parent __init__method
+    :param handlers: request handlers to be passed to parent ``__init__``
+        method
+    :type handlers: list of tuples
+
+    :param `**kwargs`: passed to parent ``__init__`` method
     """
     def __init__(
         self,
@@ -90,18 +97,33 @@ class Server(tornado.web.Application):
         super(Server, self).__init__(handlers, **kwargs)
 
     def make_job(self, data, jobType):
+        """
+        Instantiate a job from deserialized job attribute data
+
+        :param data: deserialized job attributes data
+        :type data: dict
+
+        :param str jobType: ``jobType`` string -- must map to a ``jobType``
+            registered with this Server's registry
+        """
         return self.registry.make_job(
             data, self.datastore, self.jobQueue, None, jobType=jobType
         )
 
     def get_job(self, uuid):
+        """
+        Retrieve and instantiate a job that has been persisted in the datastore
+
+        :param str uuid: UUID of the job to be retrieved and instantiated
+        """
         return self.registry.get_job(
             uuid, self.datastore, self.jobQueue, None
         )
 
     def exit_handler(self):
         """
-        Makes sure worker dies on exit
+        Should be called on system exit to ensure that the system exit can be
+        logged in any actively running job 
         """
         log.info(f"{self.name}:{self.pid} | exiting")
         self.kill_worker()
