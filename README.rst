@@ -21,13 +21,6 @@ Built-in ZeroG functionality includes:
 - Job logging
 - Flexible capacity management
 
-ZeroG has the following key dependencies
-
-- Tornado Web Server for its REST API
-- Marshmallow for schema definition, validation, and serialization/deserialization.
-- A queueing server. The base ZeroG implementation uses the Beanstalkd queue
-- A persistent key/value store. The base ZeroG implementation uses the Couchbase NoSQL database.
-
 Overview
 ========
 
@@ -203,5 +196,11 @@ Full documentation is available at https://zerog.readthedocs.io/en/latest/ .
 Requirements
 ============
 
+ZeroG has the following key dependencies
+
+- Tornado Web Server for its REST API
+- Marshmallow for schema definition, validation, and serialization/deserialization.
+- A queueing server. The base ZeroG implementation uses the Beanstalkd queue
+- A persistent key/value store. The base ZeroG implementation uses the Couchbase NoSQL database.
 - Python >= 3.6
 
