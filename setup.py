@@ -6,7 +6,7 @@ setup(
     author='MotiveMetrics',
     install_requires=[
         'beanstalkc3>=0.4.0',
-        'couchbase==2.5.12',
+        'couchbase>=2.5.12',
         'marshmallow>=3.0.5',
         'psutil',
         'tornado>=4.5'
