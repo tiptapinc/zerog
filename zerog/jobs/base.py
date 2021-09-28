@@ -150,12 +150,22 @@ class BaseJob(ABC):
         If overriding this method, you MUST call the parent ``__init__()``
         using ``super``
 
+        This ``__init__()`` method is the opportunity to load any extra
+        fields that are declared in the associated schema.
+
+        Required fields can be loaded directly by referencing their key.
+
+        Optional fields need to be loaded using the dictionary's ``get``
+        method, which gives an opportunity to load the field with a default
+        value if it isn't present in the input data.
+
         Example::
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
 
-                self.myfield = kwargs.get('myfield')
+                self.requiredField = kwargs['requiredField']
+                self.optionalField = kwargs.get('optionalField', "default")
         """
         self.datastore = datastore
         self.queue = queue

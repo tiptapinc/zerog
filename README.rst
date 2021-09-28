@@ -1,5 +1,5 @@
 *****
-ZeroG -- Under Construction !!
+ZeroG
 *****
 
 .. contents:: Table of Contents
