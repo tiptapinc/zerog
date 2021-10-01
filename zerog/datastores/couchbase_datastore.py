@@ -5,6 +5,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
 from couchbase.cluster import Cluster, ClusterOptions, PasswordAuthenticator
+from couchbase.management.buckets import BucketManager
 import couchbase.exceptions
 import psutil
 
@@ -63,6 +64,7 @@ class CouchbaseDatastore(object):
         self.cluster = Cluster(connectionString, ClusterOptions(authenticator))
         self.bucket = self.cluster.bucket(bucket)
         self.viewManager = self.bucket.view_indexes()
+        self.bucketManager = BucketManager(self.bucket._admin)
         self.collection = self.cluster.bucket(bucket).default_collection()
 
     @retry_on_timeouts
@@ -84,7 +86,6 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def lock(self, key, **kwargs):
-        kwargs['quiet'] = True
         result = self.collection.get_and_lock(key, **kwargs)
         return result.content, result.cas
 
@@ -94,13 +95,11 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
-        kwargs['quiet'] = True
         result = self.collection.replace(key, value, **kwargs)
         return result.success
 
     @retry_on_timeouts
     def update_with_cas(self, key, value, **kwargs):
-        kwargs['quiet'] = True
         result = self.collection.replace(key, value, **kwargs)
         return result.success, result.cas
 
@@ -125,21 +124,3 @@ class CouchbaseDatastore(object):
         kwargs['quiet'] = True
         result = self.collection.remove(key, **kwargs)
         return result.success
-
-    @retry_on_timeouts
-    def view(self, design, view, **kwargs):
-        return self.cluster.bucket.view_query(design, view, **kwargs)
-
-    @retry_on_timeouts
-    def get_multi(self, keys, **kwargs):
-        return self.collection.get_multi(keys, **kwargs)
-
-    @retry_on_timeouts
-    def design_get(self, name, **kwargs):
-        return self.viewManager.get_design_document(name, **kwargs)
-
-    @retry_on_timeouts
-    def design_create(self, name, ddoc, **kwargs):
-        return self.bucket.viewManager.upsert_design_document(
-            name, ddoc, **kwargs
-        )
