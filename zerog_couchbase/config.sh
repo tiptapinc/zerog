@@ -18,6 +18,7 @@ couchbase-cli bucket-create -c localhost \
 	--password password \
 	--bucket test \
 	--bucket-type couchbase \
-	--bucket-ramsize 1024
+	--bucket-ramsize 1024 \
+	--enable-flush 1
 
 wait
