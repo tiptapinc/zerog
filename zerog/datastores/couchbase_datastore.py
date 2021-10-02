@@ -44,8 +44,8 @@ class CouchbaseDatastore(object):
     """
     Simple Couchbase datastore client object
     """
-    casException = KeyExistsError
-    lockedException = TemporaryFailError
+    casException = couchbase.exceptions.CouchbaseError
+    lockedException = couchbase.exceptions.CouchbaseError
 
     def __init__(self, host, username, password, bucket, **kwargs):
         connectionString = "couchbase://{0}".format(host)
@@ -114,19 +114,3 @@ class CouchbaseDatastore(object):
     def delete(self, key, **kwargs):
         ro = self.bucket.remove(key, **kwargs)
         return ro.success
-
-    @retry_on_timeouts
-    def view(self, design, view, **kwargs):
-        return self.bucket.query(design, view, **kwargs)
-
-    @retry_on_timeouts
-    def get_multi(self, keys, **kwargs):
-        return self.bucket.get_multi(keys, **kwargs)
-
-    @retry_on_timeouts
-    def design_get(self, name, **kwargs):
-        return self.bucket.bucket_manager().design_get(name, **kwargs)
-
-    @retry_on_timeouts
-    def design_create(self, name, ddoc, **kwargs):
-        return self.bucket.bucket_manager().design_create(name, ddoc, **kwargs)
