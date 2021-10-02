@@ -107,38 +107,6 @@ def test_read_with_cas(datastore):
     assert bool(readcas)    # ensure it's not nothing
 
 
-def test_lock_and_unlock(datastore):
-    key = "test_string"
-    value = "the quick brown fox double backflips over the lazy dog"
-
-    success = datastore.set(key, value)
-
-    readvalue, cas = datastore.lock(key, ttl=30)
-    assert readvalue == value
-    assert bool(cas)
-
-    newvalue = "the quick brown fox falls asleep"
-    with pytest.raises(Exception):
-        datastore.update(key, newvalue)
-
-    with pytest.raises(datastore.lockedException):
-        datastore.set(key, newvalue)
-
-    with pytest.raises(datastore.lockedException):
-        datastore.delete(key)
-
-    with pytest.raises(datastore.casException):
-        datastore.unlock(key, 0)
-
-    datastore.unlock(key, cas)
-
-    success = datastore.update(key, newvalue)
-    assert success is True
-
-    readvalue = datastore.read(key)
-    assert readvalue == newvalue
-
-
 def test_update(datastore):
     key = "test_string"
     value = "the quick brown fox laughs at the lazy dog"

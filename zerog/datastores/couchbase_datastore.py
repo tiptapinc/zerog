@@ -7,6 +7,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 from couchbase.cluster import Cluster, ClusterOptions, PasswordAuthenticator
 from couchbase.management.buckets import BucketManager
 import couchbase.exceptions
+import datetime
 import psutil
 
 import logging
@@ -83,15 +84,6 @@ class CouchbaseDatastore(object):
         kwargs['quiet'] = True
         result = self.collection.get(key, **kwargs)
         return result.content, result.cas
-
-    @retry_on_timeouts
-    def lock(self, key, **kwargs):
-        result = self.collection.get_and_lock(key, **kwargs)
-        return result.content, result.cas
-
-    @retry_on_timeouts
-    def unlock(self, key, cas):
-        self.collection.unlock(key, cas, quiet=True)
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
