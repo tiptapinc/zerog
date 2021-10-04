@@ -46,7 +46,7 @@ class CouchbaseDatastore(object):
     Simple Couchbase datastore client object
     """
     casException = couchbase.exceptions.CASMismatchException
-    lockedException = couchbase.exceptions.CouchbaseDataException
+    lockedException = couchbase.exceptions.DocumentLockedException
 
     def __init__(self, host, username, password, bucket, **kwargs):
         connectionString = "couchbase://{0}".format(host)
@@ -75,14 +75,12 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def read(self, key, **kwargs):
-        kwargs['quiet'] = True
-        result = self.collection.get(key, **kwargs)
+        result = self.collection.get(key, quiet=True, **kwargs)
         return result.content
 
     @retry_on_timeouts
     def read_with_cas(self, key, **kwargs):
-        kwargs['quiet'] = True
-        result = self.collection.get(key, **kwargs)
+        result = self.collection.get(key, quiet=True, **kwargs)
         return result.content, result.cas
 
     @retry_on_timeouts
@@ -113,6 +111,5 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def delete(self, key, **kwargs):
-        kwargs['quiet'] = True
-        result = self.collection.remove(key, **kwargs)
+        result = self.collection.remove(key, quiet=True, **kwargs)
         return result.success
