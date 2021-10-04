@@ -212,7 +212,7 @@ def test_request_info_msg(server_app, make_channel, clear_queue):
     assert infomsg is not None
     assert infomsg.msgtype == "info"
     assert infomsg.workerId == workerId
-    assert infomsg.state == "polling"
+    assert infomsg.state == "activeIdle"
 
 
 def test_get_running_job_uuid(
@@ -242,7 +242,7 @@ def test_get_running_job_uuid(
     assert infomsg is not None
     assert infomsg.msgtype == "info"
     assert infomsg.workerId == workerId
-    assert infomsg.state == "runningJob"
+    assert infomsg.state == "activeRunning"
     assert infomsg.uuid == j.uuid
 
     time.sleep(sleeptime + 1)
@@ -261,7 +261,7 @@ def test_get_running_job_uuid(
     assert infomsg is not None
     assert infomsg.msgtype == "info"
     assert infomsg.workerId == workerId
-    assert infomsg.state == "polling"
+    assert infomsg.state == "activeIdle"
 
 
 def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
@@ -281,7 +281,7 @@ def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
     msg = make_msg("drain")
     ctrlchannel.send_msg(msg)
     app.do_poll()
-    assert app.state == "draining"
+    assert app.state == "drainingRunning"
 
     clear_queue(updateschannel.queue)
     msg = make_msg("requestInfo")
@@ -292,7 +292,7 @@ def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
     assert infomsg is not None
     assert infomsg.msgtype == "info"
     assert infomsg.workerId == workerId
-    assert infomsg.state == "draining"
+    assert infomsg.state == "drainingRunning"
 
     time.sleep(sleeptime + 1)
 

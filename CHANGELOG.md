@@ -1,3 +1,6 @@
+##v0.0.36
+* extend test coverage and support couchbase SDK v3+
+
 ##v0.0.35
 * update documentation to use sphinx/readthedocs
 
