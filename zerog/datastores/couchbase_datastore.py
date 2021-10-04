@@ -4,9 +4,10 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
-from couchbase.cluster import Cluster, PasswordAuthenticator
-from couchbase.exceptions import KeyExistsError, TemporaryFailError
+from couchbase.cluster import Cluster, ClusterOptions, PasswordAuthenticator
+from couchbase.management.buckets import BucketManager
 import couchbase.exceptions
+import datetime
 import psutil
 
 import logging
@@ -27,7 +28,7 @@ def retry_on_timeouts(func):
             try:
                 return func(*args, **kwargs)
 
-            except couchbase.exceptions.TimeoutError as e:
+            except couchbase.exceptions.TimeoutException as e:
                 tries += 1
                 if tries > 3:
                     raise e
@@ -44,8 +45,8 @@ class CouchbaseDatastore(object):
     """
     Simple Couchbase datastore client object
     """
-    casException = KeyExistsError
-    lockedException = TemporaryFailError
+    casException = couchbase.exceptions.CASMismatchException
+    lockedException = couchbase.exceptions.DocumentLockedException
 
     def __init__(self, host, username, password, bucket, **kwargs):
         connectionString = "couchbase://{0}".format(host)
@@ -58,75 +59,57 @@ class CouchbaseDatastore(object):
 
         queryStr = "&".join(connectArgs)
         if queryStr:
-            connectionString += "/?{0}".format(queryStr)
+            connectionString += "?{0}".format(queryStr)
 
-        cluster = Cluster(connectionString)
         authenticator = PasswordAuthenticator(username, password)
-        cluster.authenticate(authenticator)
-        kwargs['quiet'] = True
-        self.bucket = cluster.open_bucket(bucket, **kwargs)
+        self.cluster = Cluster(connectionString, ClusterOptions(authenticator))
+        self.bucket = self.cluster.bucket(bucket)
+        self.viewManager = self.bucket.view_indexes()
+        self.bucketManager = BucketManager(self.bucket._admin)
+        self.collection = self.cluster.bucket(bucket).default_collection()
 
     @retry_on_timeouts
     def create(self, key, value, **kwargs):
-        ro = self.bucket.insert(key, value, **kwargs)
-        return ro.success
+        result = self.collection.insert(key, value, **kwargs)
+        return result.success
 
     @retry_on_timeouts
     def read(self, key, **kwargs):
-        rv = self.bucket.get(key, **kwargs)
-        return rv.value
+        result = self.collection.get(key, quiet=True, **kwargs)
+        return result.content
 
     @retry_on_timeouts
     def read_with_cas(self, key, **kwargs):
-        rv = self.bucket.get(key, **kwargs)
-        return rv.value, rv.cas
-
-    @retry_on_timeouts
-    def lock(self, key, **kwargs):
-        rv = self.bucket.lock(key, **kwargs)
-        return rv.value, rv.cas
-
-    @retry_on_timeouts
-    def unlock(self, key, cas):
-        self.bucket.unlock(key, cas)
+        result = self.collection.get(key, quiet=True, **kwargs)
+        return result.content, result.cas
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
-        ro = self.bucket.replace(key, value, **kwargs)
-        return ro.success
+        result = self.collection.replace(key, value, **kwargs)
+        return result.success
 
     @retry_on_timeouts
     def update_with_cas(self, key, value, **kwargs):
-        ro = self.bucket.replace(key, value, **kwargs)
-        return ro.success, ro.cas
+        result = self.collection.replace(key, value, **kwargs)
+        return result.success, result.cas
 
     @retry_on_timeouts
     def set(self, key, value, **kwargs):
-        ro = self.bucket.upsert(key, value, **kwargs)
-        return ro.success
+        result = self.collection.upsert(key, value, **kwargs)
+        return result.success
 
     @retry_on_timeouts
     def set_with_cas(self, key, value, **kwargs):
-        ro = self.bucket.upsert(key, value, **kwargs)
-        return ro.success, ro.cas
+        # starting with Couchbase python SDK v3, upsert no longer fails
+        # on incorrect CAS, so we need to create our own upsert using
+        # replace
+        try:
+            result = self.collection.replace(key, value, **kwargs)
+        except couchbase.exceptions.DocumentNotFoundException:
+            result = self.collection.insert(key, value, **kwargs)
+        return result.success, result.cas
 
     @retry_on_timeouts
     def delete(self, key, **kwargs):
-        ro = self.bucket.remove(key, **kwargs)
-        return ro.success
-
-    @retry_on_timeouts
-    def view(self, design, view, **kwargs):
-        return self.bucket.query(design, view, **kwargs)
-
-    @retry_on_timeouts
-    def get_multi(self, keys, **kwargs):
-        return self.bucket.get_multi(keys, **kwargs)
-
-    @retry_on_timeouts
-    def design_get(self, name, **kwargs):
-        return self.bucket.bucket_manager().design_get(name, **kwargs)
-
-    @retry_on_timeouts
-    def design_create(self, name, ddoc, **kwargs):
-        return self.bucket.bucket_manager().design_create(name, ddoc, **kwargs)
+        result = self.collection.remove(key, quiet=True, **kwargs)
+        return result.success

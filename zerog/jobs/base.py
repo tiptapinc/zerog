@@ -129,7 +129,6 @@ class BaseJob(ABC):
 
     Subclasses MUST
 
-        - call the base ``__init__()`` using ``super``
         - override the ``run()`` method
     """
     DOCUMENT_TYPE = "zerog_job"   # used to make datastore key

@@ -33,31 +33,6 @@ DRAINING_DOWN = "drainingDown"
 class Server(tornado.web.Application):
     """
     Base ZeroG server class
-
-    :param name: service name for this zerog server
-    :type name: str
-
-    :param makeDatastore: function to create a Datastore object that can be
-        used to persist & retrieve jobs.
-    :type makeDatastore: function
-
-    :param makeQueue: function to create Queue objects for posting jobs & for
-        inter-server communications
-    :type makeQueue: function
-
-    :param jobClasses: List of job classes (derived from BaseClass) that
-        this ZeroG instance will support. Additional job classes can be added
-        later with the add_to_registry method
-    :type jobClasses: list
-
-    :param thisHost: host IP address or hostname
-    :type thisHost: str
-
-    :param handlers: request handlers to be passed to parent ``__init__``
-        method
-    :type handlers: list of tuples
-
-    :param `**kwargs`: passed to parent ``__init__`` method
     """
     def __init__(
         self,
@@ -69,6 +44,32 @@ class Server(tornado.web.Application):
         thisHost='localhost',
         **kwargs
     ):
+        """
+        :param name: service name for this zerog server
+        :type name: str
+
+        :param makeDatastore: function to create a Datastore object that can
+            be used to persist & retrieve jobs.
+        :type makeDatastore: function
+
+        :param makeQueue: function to create Queue objects for posting jobs
+            & for inter-server communications
+        :type makeQueue: function
+
+        :param jobClasses: List of job classes (derived from BaseClass) that
+            this ZeroG instance will support. Additional job classes can be
+            added later with the add_to_registry method
+        :type jobClasses: list
+
+        :param thisHost: host IP address or hostname
+        :type thisHost: str
+
+        :param handlers: request handlers to be passed to parent ``__init__``
+            method
+        :type handlers: list of tuples
+
+        :param `**kwargs`: passed to parent ``__init__`` method
+        """
         self.pid = psutil.Process().pid
 
         self.name = name

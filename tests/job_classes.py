@@ -18,8 +18,12 @@ class GoodJob(BaseJob):
         self.goodness = kwargs.get("goodness", "gracious")
 
     def run(self):
-
         return 200, None
+
+    def get_data(self):
+        data = super().get_data()
+        data['test_data'] = "test data, mon"
+        return data
 
 
 class SleepJobSchema(BaseJobSchema):

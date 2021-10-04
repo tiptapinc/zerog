@@ -4,7 +4,6 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
-import couchbase.exceptions
 import psutil
 
 import json
@@ -265,15 +264,6 @@ class BaseWorker(object):
             # Error/warning has been recorded. Job will restart.
             job.record_event("Error - restarting")
             resultCode = job.continue_running()
-            delay = 30
-
-        except couchbase.exceptions.TimeoutError:
-            # this is a temporary hack because we're seeing timeout errors
-            log.error(
-                f"{self.name}:{self.parentPid}:{self.pid} | "
-                "couchbase timeout error"
-            )
-            resultCode = zerog.jobs.NO_RESULT
             delay = 30
 
         except BaseException as e:

@@ -9,7 +9,9 @@ import pdb
 import pytest
 from tornado.httpclient import HTTPError
 
-from zerog.handlers.uuid import ProgressHandler
+from zerog.handlers.uuid import (
+    ProgressHandler, InfoHandler, GetDataHandler, UUID_PATT
+)
 from zerog.handlers.run_job import RunJobHandler
 from zerog.jobs import BaseJob
 from zerog.registry import find_subclasses
@@ -28,6 +30,8 @@ def app(zerog_app):
     jobClasses = find_subclasses(BaseJob)
     handlers = [
         ("/progress/([^/]+)", ProgressHandler),
+        ("/info/([^/]+)", InfoHandler),
+        ("/data/([^/]+)", GetDataHandler),
         ("/runjob/([^/]+)", RunJobHandler)
     ]
     app = zerog_app(jobClasses, handlers)
@@ -43,8 +47,34 @@ def test_progress(app, http_client, base_url, make_test_job):
     assert response.code == 200
 
     progress = json.loads(response.body)
-    for key in ["completeness", "result", "events", "errors", "warnings"]:
+    for key in ["completeness", "result"]:
         assert key in progress
+
+
+@pytest.mark.gen_test
+def test_info(app, http_client, base_url, make_test_job):
+    job, registry = make_test_job(job_classes.GoodJob)
+    job.save()
+    response = yield http_client.fetch("%s/info/%s" % (base_url, job.uuid))
+
+    assert response.code == 200
+
+    info = json.loads(response.body)
+    for key in ["completeness", "result", "events", "errors", "warnings"]:
+        assert key in info
+
+
+@pytest.mark.gen_test
+def test_data(app, http_client, base_url, make_test_job):
+    job, registry = make_test_job(job_classes.GoodJob)
+    job.save()
+    response = yield http_client.fetch("%s/data/%s" % (base_url, job.uuid))
+
+    assert response.code == 200
+
+    data = json.loads(response.body)
+    for key in ["test_data"]:
+        assert key in data
 
 
 @pytest.mark.gen_test
