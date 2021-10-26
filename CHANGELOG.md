@@ -1,3 +1,6 @@
+##v0.0.37
+* add INTERNAL_ERROR import in /zerog/__init__.py
+
 ##v0.0.36
 * extend test coverage and support couchbase SDK v3+
 

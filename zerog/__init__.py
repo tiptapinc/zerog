@@ -6,7 +6,7 @@ from zerog.handlers import (
 )
 from zerog.handlers.run_job import JOB_TYPE_PATT
 from zerog.handlers.uuid import UUID_PATT
-from zerog.jobs import BaseJob, BaseJobSchema, NO_RESULT
+from zerog.jobs import BaseJob, BaseJobSchema, NO_RESULT, INTERNAL_ERROR
 from zerog.queues import BeanstalkdQueue
 from zerog.registry import JobRegistry, find_subclasses, import_submodules
 from zerog.server import Server
