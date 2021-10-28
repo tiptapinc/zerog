@@ -83,7 +83,11 @@ class InfoHandler(UuidHandler):
         )
 
 
+<<<<<<< HEAD
 class DumpHandler(UuidHandler):
+=======
+class DumpHanderl(UuidHandler):
+>>>>>>> lint
     def do_get(self, job):
         jobDump = job.dump()
         LOG_FIELDS = ['events', 'warnings', 'errors']
