@@ -83,6 +83,6 @@ class InfoHandler(UuidHandler):
         )
 
 
-class DumpHanderl(UuidHandler):
+class DumpHandler(UuidHandler):
     def do_get(self, job):
         self.complete(200, output=job.dumps(indent=4, allow_nan=False))
