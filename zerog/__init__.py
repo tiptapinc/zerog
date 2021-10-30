@@ -2,7 +2,12 @@ UPDATES_CHANNEL_NAME = "updates"
 
 from zerog.datastores import CouchbaseDatastore
 from zerog.handlers import (
-    BaseHandler, GetDataHandler, ProgressHandler, RunJobHandler, InfoHandler
+    BaseHandler, 
+    GetDataHandler, 
+    ProgressHandler, 
+    RunJobHandler, 
+    InfoHandler,
+    DumpHandler
 )
 from zerog.handlers.run_job import JOB_TYPE_PATT
 from zerog.handlers.uuid import UUID_PATT
