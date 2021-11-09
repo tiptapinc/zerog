@@ -107,6 +107,13 @@ class BaseWorker(object):
                     )
                     self.draining = True
 
+                if msg == "undrain":
+                    log.info(
+                        f"{self.name}:{self.parentPid}:{self.pid} | "
+                        "worker undraining"
+                    )
+                    self.draining = False
+
             if not self.draining:
                 # check if there is a job available in the job queue. Try
                 # to run the job if so.

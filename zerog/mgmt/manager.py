@@ -34,6 +34,7 @@ class WorkerManager(object):
                 dict(
                     workerId=workerId,
                     state=workerData['state'],
+                    retiring=workerData['retiring'],
                     runningJobUuid=workerData['runningJobUuid'],
                     mem=workerData['mem']
                 )
@@ -41,12 +42,12 @@ class WorkerManager(object):
 
         return workersByHost
 
-    def drain_host(self, host):
+    def drain_host(self, host, retire=False):
         workerIds = [
             w['workerId']
             for w in self.workers_by_host().get(host, [])
         ]
-        self.drain_workers(workerIds)
+        self.drain_workers(workerIds, retire)
 
     def host_is_drained(self, host):
         workers = self.workers_by_host().get(host, [])
@@ -114,8 +115,12 @@ class WorkerManager(object):
         # workers listen to a control channel where tube == workerId
         send_msg(msg, self.queue, workerId)
 
-    def drain_workers(self, workerIds):
-        msg = make_msg("drain")
+    def drain_workers(self, workerIds, retire=False):
+        if retire:
+            msg = make_msg("retire")
+        else:
+            msg = make_msg("drain")
+
         for workerId in workerIds:
             self.send_ctrl_msg(workerId, msg)
 
@@ -168,6 +173,7 @@ class WorkerManager(object):
         workerData = dict(
             alive=True,
             state=msg.state,
+            retiring=msg.retiring,
             runningJobUuid=msg.uuid,
             mem=msg.mem
         )
