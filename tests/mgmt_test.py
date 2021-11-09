@@ -283,7 +283,7 @@ def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
     msg = make_msg("drain")
     ctrlchannel.send_msg(msg)
     app.do_poll()
-    assert app.state == "drainingRunning"
+    assert "draining" in app.state
 
     clear_queue(updateschannel.queue)
     msg = make_msg("requestInfo")
@@ -445,7 +445,7 @@ def test_worker_manager(server_app, make_channel, clear_queue):
     assert "mem" in worker
 
     assert worker['alive'] is True
-    assert worker['state'] == "activeIdle"
+    assert "active" in worker['state']
     assert worker['retiring'] is False
     assert not worker['runningJobUuid']
 
@@ -476,7 +476,48 @@ def test_worker_manager_drain_host(server_app, make_channel, clear_queue):
 
     worker = list(workers.values())[0]
     assert "state" in worker
-    assert worker['state'] == "drainingIdle"
+    assert "draining" in worker['state']
+
+
+def test_worker_manager_un_drain_host(server_app, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerManager = WorkerManager("beanstalkd", 11300)
+    workerManager.update_workers()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers_by_host()
+    assert len(workers) == 1
+
+    host = list(workers.keys())[0]
+    workerManager.drain_host(host)
+    app.do_poll()
+
+    workerManager.update_workers()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    assert len(workers) == 1
+
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "draining" in worker['state']
+
+    workerManager.un_drain_host(host)
+    app.do_poll()
+
+    workerManager.update_workers()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "active" in worker['state']
 
 
 def test_worker_manager_retire_host(server_app, make_channel, clear_queue):
@@ -505,5 +546,5 @@ def test_worker_manager_retire_host(server_app, make_channel, clear_queue):
 
     worker = list(workers.values())[0]
     assert "state" in worker
-    assert worker['state'] == "drainingIdle"
+    assert "draining" in worker['state']
     assert worker['retiring'] is True

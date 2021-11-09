@@ -49,6 +49,13 @@ class WorkerManager(object):
         ]
         self.drain_workers(workerIds, retire)
 
+    def un_drain_host(self, host):
+        workerIds = [
+            w['workerId']
+            for w in self.workers_by_host().get(host, [])
+        ]
+        self.un_drain_workers(workerIds)
+
     def host_is_drained(self, host):
         workers = self.workers_by_host().get(host, [])
         if len(workers) == 0:
@@ -121,6 +128,11 @@ class WorkerManager(object):
         else:
             msg = make_msg("drain")
 
+        for workerId in workerIds:
+            self.send_ctrl_msg(workerId, msg)
+
+    def un_drain_workers(self, workerIds):
+        msg = make_msg("undrain")
         for workerId in workerIds:
             self.send_ctrl_msg(workerId, msg)
 
