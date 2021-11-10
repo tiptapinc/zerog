@@ -148,6 +148,9 @@ class WorkerManager(object):
             self.send_ctrl_msg(workerId, msg)
 
     def update_workers(self):
+        return self.request_updates()   # temp for backward-compatibility
+
+    def request_updates(self):
         workerIds = self.known_workers()
 
         # clear out workers that are no longer listening on a control

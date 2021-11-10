@@ -430,7 +430,7 @@ def test_worker_manager(server_app, make_channel, clear_queue):
     app = server_app([SleepJob])
 
     workerManager = WorkerManager("beanstalkd", 11300)
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
     
@@ -456,7 +456,7 @@ def test_worker_manager_drain_host(server_app, make_channel, clear_queue):
     app = server_app([SleepJob])
 
     workerManager = WorkerManager("beanstalkd", 11300)
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -467,7 +467,7 @@ def test_worker_manager_drain_host(server_app, make_channel, clear_queue):
     workerManager.drain_host(host)
     app.do_poll()
 
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -485,7 +485,7 @@ def test_worker_manager_un_drain_host(server_app, make_channel, clear_queue):
     app = server_app([SleepJob])
 
     workerManager = WorkerManager("beanstalkd", 11300)
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -496,7 +496,7 @@ def test_worker_manager_un_drain_host(server_app, make_channel, clear_queue):
     workerManager.drain_host(host)
     app.do_poll()
 
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -510,7 +510,7 @@ def test_worker_manager_un_drain_host(server_app, make_channel, clear_queue):
     workerManager.un_drain_host(host)
     app.do_poll()
 
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -526,7 +526,7 @@ def test_worker_manager_retire_host(server_app, make_channel, clear_queue):
     app = server_app([SleepJob])
 
     workerManager = WorkerManager("beanstalkd", 11300)
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
@@ -537,7 +537,7 @@ def test_worker_manager_retire_host(server_app, make_channel, clear_queue):
     workerManager.drain_host(host, retire=True)
     app.do_poll()
 
-    workerManager.update_workers()
+    workerManager.request_updates()
     app.do_poll()
     workerManager.poll_updates_channel()
 
