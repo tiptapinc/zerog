@@ -186,7 +186,8 @@ class Server(tornado.web.Application):
         else:
             log.info(
                 f"{self.name}:{self.pid}:{self.proc.pid} | "
-                f"drain - state {self.state}")
+                f"drain - state {self.state}"
+            )
 
     def undrain(self):
         if self.retiring:
@@ -198,6 +199,11 @@ class Server(tornado.web.Application):
 
         elif self.state == DRAINING_RUNNING:
             self.state = ACTIVE_RUNNING
+
+        log.info(
+            f"{self.name}:{self.pid}:{self.proc.pid} | "
+            f"undrain - state {self.state}"
+        )
 
     def process_worker_message(self, msg):
         msgType = msg.get('type')
