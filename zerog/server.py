@@ -193,16 +193,21 @@ class Server(tornado.web.Application):
         if self.retiring:
             return
 
+        oldState = self.state
         self.parentConn.send("undrain")
-        if self.state in [DRAINING_IDLE, DRAINING_DOWN]:
+        if self.state == DRAINING_IDLE:
             self.state = ACTIVE_IDLE
+
+        elif self.state == DRAINING_DOWN:
+            self.state = ACTIVE_IDLE
+            self.start_worker()
 
         elif self.state == DRAINING_RUNNING:
             self.state = ACTIVE_RUNNING
 
         log.info(
             f"{self.name}:{self.pid}:{self.proc.pid} | "
-            f"undrain - state {self.state}"
+            f"undrain - state was {oldState}, now {self.state}"
         )
 
     def process_worker_message(self, msg):
