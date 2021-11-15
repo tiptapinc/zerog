@@ -8,6 +8,7 @@ Simple beanstalkd client
 import beanstalkc
 import json
 import time
+import yaml
 
 import logging
 log = logging.getLogger(__name__)
@@ -23,7 +24,9 @@ class BeanstalkdQueue(object):
 
     def make_connection(self):
         self.bean = beanstalkc.Connection(
-            host=self.host, port=self.port
+            host=self.host,
+            port=self.port,
+            parse_yaml=yaml.safe_load
         )
         # while True:
         #     try:

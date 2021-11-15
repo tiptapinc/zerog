@@ -65,6 +65,7 @@ class InfoMsgSchema(BaseSchema):
     state = fields.String(required=True)
     uuid = fields.String()
     mem = fields.Dict()
+    retiring = fields.Boolean()
 
 
 class InfoMsg(BaseMsg):
@@ -77,6 +78,7 @@ class InfoMsg(BaseMsg):
         self.state = kwargs['state']
         self.uuid = kwargs.get('uuid', "")
         self.mem = kwargs.get('mem', {})
+        self.retiring = kwargs.get('retiring', False)
 
 
 ##################################################################
@@ -124,6 +126,34 @@ class DrainMsg(BaseMsg):
     MSG_TYPE = "drain"
 
 
+class UnDrainMsgSchema(BaseSchema):
+    pass
+
+
+class UnDrainMsg(BaseMsg):
+    """
+    tells a worker to exit the draining state and start polling for
+    new jobs again. If the worker is in the retiring state, this should
+    do nothing
+    """
+    SCHEMA = UnDrainMsgSchema
+    MSG_TYPE = "undrain"
+
+
+class RetireMsgSchema(BaseSchema):
+    pass
+
+
+class RetireMsg(BaseMsg):
+    """
+    tells a worker to stop polling for new jobs and enter the
+    draining and retiring states. The retiring state is meant
+    to be irreversible.
+    """
+    SCHEMA = RetireMsgSchema
+    MSG_TYPE = "retire"
+
+
 ##################################################################
 # functions to create a message using keyword arguments or
 # to recreate a message from its serialized self
@@ -156,7 +186,9 @@ MSG_CLASSES = [
     InfoMsg,
     RequestInfoMsg,
     KillJobMsg,
-    DrainMsg
+    DrainMsg,
+    UnDrainMsg,
+    RetireMsg
 ]
 
 MSG_TYPE_TO_CLASS_MAP = {

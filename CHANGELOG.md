@@ -1,3 +1,6 @@
+##v0.0.38
+* add retire and undrain actions to support autoscaler
+
 ##v0.0.37
 * add INTERNAL_ERROR import in /zerog/__init__.py
 

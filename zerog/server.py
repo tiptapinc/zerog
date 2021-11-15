@@ -88,6 +88,7 @@ class Server(tornado.web.Application):
         self.registry.add_classes(jobClasses)
 
         self.state = ACTIVE_IDLE
+        self.retiring = False
         self.workerStatus = ""
         self.runningJobUuid = ""
 
@@ -185,7 +186,29 @@ class Server(tornado.web.Application):
         else:
             log.info(
                 f"{self.name}:{self.pid}:{self.proc.pid} | "
-                f"drain - state {self.state}")
+                f"drain - state {self.state}"
+            )
+
+    def undrain(self):
+        if self.retiring:
+            return
+
+        oldState = self.state
+        self.parentConn.send("undrain")
+        if self.state == DRAINING_IDLE:
+            self.state = ACTIVE_IDLE
+
+        elif self.state == DRAINING_DOWN:
+            self.state = ACTIVE_IDLE
+            self.start_worker()
+
+        elif self.state == DRAINING_RUNNING:
+            self.state = ACTIVE_RUNNING
+
+        log.info(
+            f"{self.name}:{self.pid}:{self.proc.pid} | "
+            f"undrain - state was {oldState}, now {self.state}"
+        )
 
     def process_worker_message(self, msg):
         msgType = msg.get('type')
@@ -279,35 +302,46 @@ class Server(tornado.web.Application):
             self.workerStatus = workerStatus
 
     def do_control_queue_poll(self):
-        msg = self.ctrlChannel.get_msg()
-        if msg:
-            if msg.msgtype == "requestInfo":
-                try:
-                    p = psutil.Process(self.pid)
-                    used = p.memory_full_info().uss
-                    for kid in p.children(recursive=True):
-                        used += kid.memory_full_info().uss
-                except psutil.NoSuchProcess:
-                    used = 0
+        while True:
+            msg = self.ctrlChannel.get_msg()
+            if not msg:
+                break
+            else:
+                if msg.msgtype == "requestInfo":
+                    try:
+                        p = psutil.Process(self.pid)
+                        used = p.memory_full_info().uss
+                        for kid in p.children(recursive=True):
+                            used += kid.memory_full_info().uss
+                    except psutil.NoSuchProcess:
+                        used = 0
 
-                mem = dict(
-                    available=psutil.virtual_memory().available,
-                    used=used
-                )
-                infomsg = make_msg(
-                    "info",
-                    workerId=self.workerId,
-                    state=self.state,
-                    uuid=self.runningJobUuid,
-                    mem=mem
-                )
-                self.updatesChannel.send_msg(infomsg)
+                    mem = dict(
+                        available=psutil.virtual_memory().available,
+                        used=used
+                    )
+                    infomsg = make_msg(
+                        "info",
+                        workerId=self.workerId,
+                        state=self.state,
+                        retiring=self.retiring,
+                        uuid=self.runningJobUuid,
+                        mem=mem,
+                    )
+                    self.updatesChannel.send_msg(infomsg)
 
-            elif msg.msgtype == "drain":
-                self.drain()
+                elif msg.msgtype == "drain":
+                    self.drain()
 
-            elif msg.msgtype == "killJob":
-                uuid = self.runningJobUuid
-                if uuid and uuid == msg.uuid:
-                    self.kill_worker(killJob=True)
-                    self.start_worker()
+                elif msg.msgtype == "undrain":
+                    self.undrain()
+
+                elif msg.msgtype == "retire":
+                    self.retiring = True
+                    self.drain()
+
+                elif msg.msgtype == "killJob":
+                    uuid = self.runningJobUuid
+                    if uuid and uuid == msg.uuid:
+                        self.kill_worker(killJob=True)
+                        self.start_worker()

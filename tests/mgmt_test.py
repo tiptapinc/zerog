@@ -7,7 +7,9 @@ import subprocess
 import time
 
 from tests.job_classes import SleepJob
-from zerog.mgmt import MgmtChannel, make_msg, make_worker_id, parse_worker_id
+from zerog.mgmt import (
+    MgmtChannel, make_msg, make_worker_id, parse_worker_id, WorkerManager
+)
 from zerog.mgmt.messages import InfoMsg
 
 
@@ -281,7 +283,7 @@ def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
     msg = make_msg("drain")
     ctrlchannel.send_msg(msg)
     app.do_poll()
-    assert app.state == "drainingRunning"
+    assert "draining" in app.state
 
     clear_queue(updateschannel.queue)
     msg = make_msg("requestInfo")
@@ -293,11 +295,13 @@ def test_drain(server_app, make_sleep_job, make_channel, clear_queue):
     assert infomsg.msgtype == "info"
     assert infomsg.workerId == workerId
     assert infomsg.state == "drainingRunning"
+    assert infomsg.retiring is False
 
     time.sleep(sleeptime + 1)
 
     j.reload()
     assert j.resultCode == 200
+    app.do_poll()
 
     j = make_sleep_job(sleeptime)
     assert wait_until_running(j, 10) is False
@@ -325,3 +329,222 @@ def test_kill_job(server_app, make_sleep_job, make_channel, clear_queue):
     j.reload()
     assert j.resultCode == 410
     assert "Killed by user" in j.errors[0].msg
+
+
+def test_un_drain(server_app, make_sleep_job, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerId = make_worker_id(
+        "zerog", app.thisHost, app.name, app.pid
+    )
+    ctrlchannel = make_channel(workerId)
+
+    sleeptime = 5
+    j = make_sleep_job(sleeptime)
+    assert wait_until_running(j, 30)
+
+    msg = make_msg("drain")
+    ctrlchannel.send_msg(msg)
+    app.do_poll()
+    assert app.state == "drainingRunning"
+
+    clear_queue(updateschannel.queue)
+    msg = make_msg("undrain")
+    ctrlchannel.send_msg(msg)
+    app.do_poll()
+    assert app.state == "activeRunning"
+
+    clear_queue(updateschannel.queue)
+    msg = make_msg("requestInfo")
+    ctrlchannel.send_msg(msg)
+
+    app.do_poll()
+    infomsg = updateschannel.get_msg()
+    assert infomsg is not None
+    assert infomsg.msgtype == "info"
+    assert infomsg.workerId == workerId
+    assert infomsg.state == "activeRunning"
+
+    time.sleep(sleeptime + 1)
+
+    j.reload()
+    assert j.resultCode == 200
+    app.do_poll()
+
+    j = make_sleep_job(sleeptime)
+    assert wait_until_running(j, 10)
+
+
+def test_retire(server_app, make_sleep_job, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerId = make_worker_id(
+        "zerog", app.thisHost, app.name, app.pid
+    )
+    ctrlchannel = make_channel(workerId)
+
+    sleeptime = 5
+    j = make_sleep_job(sleeptime)
+    assert wait_until_running(j, 30)
+
+    msg = make_msg("retire")
+    ctrlchannel.send_msg(msg)
+    app.do_poll()
+    assert app.state == "drainingRunning"
+
+    clear_queue(updateschannel.queue)
+    msg = make_msg("undrain")
+    ctrlchannel.send_msg(msg)
+    app.do_poll()
+    assert app.state == "drainingRunning"
+
+    clear_queue(updateschannel.queue)
+    msg = make_msg("requestInfo")
+    ctrlchannel.send_msg(msg)
+
+    app.do_poll()
+    infomsg = updateschannel.get_msg()
+    assert infomsg is not None
+    assert infomsg.msgtype == "info"
+    assert infomsg.workerId == workerId
+    assert infomsg.state == "drainingRunning"
+    assert infomsg.retiring is True
+
+    time.sleep(sleeptime + 1)
+
+    j.reload()
+    assert j.resultCode == 200
+    app.do_poll()
+
+    j = make_sleep_job(sleeptime)
+    assert wait_until_running(j, 10) is False
+
+
+def test_worker_manager(server_app, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerManager = WorkerManager("beanstalkd", 11300)
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+    
+    workers = workerManager.workers
+    assert len(workers) == 1
+
+    worker = list(workers.values())[0]
+    assert "alive" in worker
+    assert "state" in worker
+    assert "retiring" in worker
+    assert "runningJobUuid" in worker
+    assert "mem" in worker
+
+    assert worker['alive'] is True
+    assert "active" in worker['state']
+    assert worker['retiring'] is False
+    assert not worker['runningJobUuid']
+
+
+def test_worker_manager_drain_host(server_app, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerManager = WorkerManager("beanstalkd", 11300)
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers_by_host()
+    assert len(workers) == 1
+
+    host = list(workers.keys())[0]
+    workerManager.drain_host(host)
+    app.do_poll()
+
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    assert len(workers) == 1
+
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "draining" in worker['state']
+
+
+def test_worker_manager_un_drain_host(server_app, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerManager = WorkerManager("beanstalkd", 11300)
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers_by_host()
+    assert len(workers) == 1
+
+    host = list(workers.keys())[0]
+    workerManager.drain_host(host)
+    app.do_poll()
+
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    assert len(workers) == 1
+
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "draining" in worker['state']
+
+    workerManager.un_drain_host(host)
+    app.do_poll()
+
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "active" in worker['state']
+
+
+def test_worker_manager_retire_host(server_app, make_channel, clear_queue):
+    updateschannel = make_channel("updates")
+    clear_queue(updateschannel.queue)
+    app = server_app([SleepJob])
+
+    workerManager = WorkerManager("beanstalkd", 11300)
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers_by_host()
+    assert len(workers) == 1
+
+    host = list(workers.keys())[0]
+    workerManager.drain_host(host, retire=True)
+    app.do_poll()
+
+    workerManager.request_updates()
+    app.do_poll()
+    workerManager.poll_updates_channel()
+
+    workers = workerManager.workers
+    assert len(workers) == 1
+
+    worker = list(workers.values())[0]
+    assert "state" in worker
+    assert "draining" in worker['state']
+    assert worker['retiring'] is True
