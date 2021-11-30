@@ -85,4 +85,13 @@ class InfoHandler(UuidHandler):
 
 class DumpHandler(UuidHandler):
     def do_get(self, job):
-        self.complete(200, output=job.dumps(indent=4, allow_nan=False))
+        jobDump = job.dump()
+        LOG_FIELDS = ['events', 'warnings', 'errors']
+        showLogs = self.get_argument('showLogs', False, True)
+        if showLogs:
+            for field in LOG_FIELDS:
+                jobDump.pop(field)
+
+        self.complete(200, output=json.dumps(
+            jobDump, indent=4, allow_nan=False)
+        )
