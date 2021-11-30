@@ -88,9 +88,9 @@ class DumpHandler(UuidHandler):
         jobDump = job.dump()
         LOG_FIELDS = ['events', 'warnings', 'errors']
         showLogs = self.get_argument('showLogs', False, True)
-        if showLogs:
+        if not showLogs:
             for field in LOG_FIELDS:
-                jobDump.pop(field)
+                jobDump.pop(field, None)
 
         self.complete(200, output=json.dumps(
             jobDump, indent=4, allow_nan=False)
