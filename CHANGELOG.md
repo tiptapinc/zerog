@@ -1,3 +1,6 @@
+##v0.0.39
+* add uuid handler for dumping jobs
+
 ##v0.0.38
 * add retire and undrain actions to support autoscaler
 
