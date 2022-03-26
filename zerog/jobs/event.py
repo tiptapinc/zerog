@@ -32,5 +32,5 @@ class Event(object):
 
 def make_event(msg):
     # action is required
-    data = dict(msg=msg)
+    data = dict(msg=str(msg))
     return EventSchema().load(data)

@@ -33,5 +33,5 @@ class Warning(object):
 
 def make_warning(msg):
     # action is required
-    data = dict(msg=msg)
+    data = dict(msg=str(msg))
     return WarningSchema().load(data)
