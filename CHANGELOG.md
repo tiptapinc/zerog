@@ -1,5 +1,5 @@
 ##v0.0.40
-* update library so it works with couchbase library version >= 4.0.0
+* lock couchbase version to 3.2.7
 
 ##v0.0.39
 * add uuid handler for dumping jobs
