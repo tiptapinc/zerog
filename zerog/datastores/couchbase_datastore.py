@@ -78,12 +78,12 @@ class CouchbaseDatastore(object):
     @retry_on_timeouts
     def read(self, key, **kwargs):
         result = self.collection.get(key, quiet=True, **kwargs)
-        return result.content
+        return result.value
 
     @retry_on_timeouts
     def read_with_cas(self, key, **kwargs):
         result = self.collection.get(key, quiet=True, **kwargs)
-        return result.content, result.cas
+        return result.value, result.cas
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
