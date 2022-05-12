@@ -77,13 +77,19 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def read(self, key, **kwargs):
-        result = self.collection.get(key, quiet=True, **kwargs)
-        return result.value
+        try:
+            result = self.collection.get(key, **kwargs)
+            return result.value
+        except couchbase.exceptions.DocumentNotFoundException:
+            return
 
     @retry_on_timeouts
     def read_with_cas(self, key, **kwargs):
-        result = self.collection.get(key, quiet=True, **kwargs)
-        return result.value, result.cas
+        try:
+            result = self.collection.get(key, **kwargs)
+            return result.value, result.cas
+        except couchbase.exceptions.DocumentNotFoundException:
+            return None, None
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
@@ -113,5 +119,8 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def delete(self, key, **kwargs):
-        result = self.collection.remove(key, quiet=True, **kwargs)
-        return result.success
+        try:
+            result = self.collection.remove(key, **kwargs)
+            return result.success
+        except couchbase.exceptions.DocumentNotFoundException:
+            return False
