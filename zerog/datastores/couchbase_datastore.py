@@ -67,7 +67,7 @@ class CouchbaseDatastore(object):
         self.cluster = Cluster(connectionString, ClusterOptions(authenticator))
         self.bucket = self.cluster.bucket(bucket)
         self.viewManager = self.bucket.view_indexes()
-        # self.bucketManager = BucketManager(self.bucket._admin)
+        self.bucketManager = self.cluster.buckets()
         self.collection = self.cluster.bucket(bucket).default_collection()
 
     @retry_on_timeouts
