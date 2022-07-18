@@ -5,11 +5,13 @@ from .utils import parse_worker_id
 
 
 class WorkerManager(object):
-    def __init__(self, queueHost, queuePort):
+    def __init__(self, queueHost, queuePort, **kwargs):
         self.queueHost = queueHost
         self.queuePort = queuePort
 
-        self.queue = self.get_queue(zerog.UPDATES_CHANNEL_NAME)
+        self.queue = self.get_queue(
+            zerog.UPDATES_CHANNEL_NAME + kwargs.get("updatesPostfix", "")
+        )
         self.updatesChannel = MgmtChannel(self.queue)
 
         self.jobRuns = {}
