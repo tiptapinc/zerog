@@ -38,5 +38,5 @@ class Error(object):
 
 def make_error(errorCode, msg):
     # action is required
-    data = dict(errorCode=errorCode, msg=msg)
+    data = dict(errorCode=errorCode, msg=str(msg))
     return ErrorSchema().load(data)
