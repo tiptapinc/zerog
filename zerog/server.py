@@ -79,8 +79,13 @@ class Server(tornado.web.Application):
 
         self.datastore = makeDatastore()
         self.jobQueue = makeQueue("{0}_jobs".format(self.name))
+
+        # ugly hack to add extra zerog management channels on the same
+        # queue server
         self.updatesChannel = MgmtChannel(
-            makeQueue(zerog.UPDATES_CHANNEL_NAME)
+            makeQueue(
+                zerog.UPDATES_CHANNEL_NAME + kwargs.get("updatesPostfix", "")
+            )
         )
         self.ctrlChannel = MgmtChannel(makeQueue(self.workerId))
 
