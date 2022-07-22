@@ -1,3 +1,6 @@
+##v0.0.41
+* add updatePostfix kwarg to WorkerManager
+
 ##v0.0.40
 * lock couchbase version to 3.2.7
 
