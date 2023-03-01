@@ -1,4 +1,4 @@
-FROM couchbase:community-6.6.0
+FROM couchbase:community
 
 COPY config.sh config.sh
 RUN chmod +x config.sh

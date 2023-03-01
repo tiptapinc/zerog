@@ -4,8 +4,9 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
-from couchbase.cluster import Cluster, ClusterOptions, PasswordAuthenticator
-from couchbase.management.buckets import BucketManager
+from couchbase.auth import PasswordAuthenticator
+from couchbase.cluster import Cluster
+from couchbase.options import ClusterOptions
 import couchbase.exceptions
 import datetime
 import psutil
@@ -64,8 +65,6 @@ class CouchbaseDatastore(object):
         authenticator = PasswordAuthenticator(username, password)
         self.cluster = Cluster(connectionString, ClusterOptions(authenticator))
         self.bucket = self.cluster.bucket(bucket)
-        self.viewManager = self.bucket.view_indexes()
-        self.bucketManager = BucketManager(self.bucket._admin)
         self.collection = self.cluster.bucket(bucket).default_collection()
 
     @retry_on_timeouts
@@ -75,13 +74,23 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def read(self, key, **kwargs):
-        result = self.collection.get(key, quiet=True, **kwargs)
-        return result.content
+        # catch exceptions to emulate the old "quiet=True" behavior
+        try:
+            result = self.collection.get(key, **kwargs)
+        except couchbase.exceptions.DocumentNotFoundException:
+            return {}
+
+        return result.value
 
     @retry_on_timeouts
     def read_with_cas(self, key, **kwargs):
-        result = self.collection.get(key, quiet=True, **kwargs)
-        return result.content, result.cas
+       # catch exceptions to emulate the old "quiet=True" behavior
+        try:
+            result = self.collection.get(key, **kwargs)
+        except couchbase.exceptions.DocumentNotFoundException:
+            return {}, None
+
+        return result.value, result.cas
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
@@ -111,5 +120,10 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def delete(self, key, **kwargs):
-        result = self.collection.remove(key, quiet=True, **kwargs)
+        # catch exceptions to emulate the old "quiet=True" behavior
+        try:
+            result = self.collection.remove(key, **kwargs)
+        except couchbase.exceptions.DocumentNotFoundException:
+            return False
+
         return result.success
