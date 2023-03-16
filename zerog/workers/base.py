@@ -231,10 +231,7 @@ class BaseWorker(object):
             )
             job.update_attrs(running=True)
             returnVal = job.run()
-            log.info(
-                f"{self.name}:{self.parentPid}:{self.pid} | "
-                f"completed {job.JOB_TYPE} {job.uuid}, returnVal {returnVal}"
-            )
+
             if isinstance(returnVal, (tuple, list)):
                 # return value is a tuple, as expected, or we can accept
                 # [resultCode, delay] as well
@@ -254,6 +251,16 @@ class BaseWorker(object):
                     resultCode = int(returnVal)
                 except (ValueError, TypeError):
                     resultCode = 200
+
+            if resultCode == zerog.jobs.NO_RESULT:
+                message = "returned to queue for additional processing"
+            else:
+                message = f"completed, result code {resultCode}"
+
+            log.info(
+                f"{self.name}:{self.parentPid}:{self.pid} | "
+                f"{job.JOB_TYPE} {job.uuid} {message}"
+            )
 
         except (zerog.jobs.ErrorFinish, zerog.jobs.WarningFinish):
             # error has already been recorded and job is done
