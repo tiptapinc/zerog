@@ -1,5 +1,5 @@
 beanstalkc3>=0.4.0
-couchbase==3.2.7
+https://raw.githubusercontent.com/tiptapinc/couchbase-wheel/master/couchbase-3.2.7-cp310-cp310-linux_x86_64.whl
 marshmallow>=3.0.5
 psutil
 pyyaml
