@@ -4,10 +4,11 @@
 Copyright (c) 2020 MotiveMetrics. All rights reserved.
 
 """
-from couchbase.cluster import Cluster, ClusterOptions, PasswordAuthenticator
+from couchbase.cluster import Cluster
+from couchbase.auth import PasswordAuthenticator
 from couchbase.management.buckets import BucketManager
+from couchbase.options import ClusterOptions
 import couchbase.exceptions
-import datetime
 import psutil
 
 import logging
