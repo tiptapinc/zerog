@@ -6,7 +6,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 """
 from couchbase.cluster import Cluster
 from couchbase.auth import PasswordAuthenticator
-from couchbase.management.buckets import BucketManager
+# from couchbase.management.buckets import BucketManager
 from couchbase.options import ClusterOptions
 import couchbase.exceptions
 import psutil
@@ -66,7 +66,7 @@ class CouchbaseDatastore(object):
         self.cluster = Cluster(connectionString, ClusterOptions(authenticator))
         self.bucket = self.cluster.bucket(bucket)
         self.viewManager = self.bucket.view_indexes()
-        self.bucketManager = BucketManager(self.bucket._admin)
+        # self.bucketManager = BucketManager(self.bucket._admin)
         self.collection = self.cluster.bucket(bucket).default_collection()
 
     @retry_on_timeouts
