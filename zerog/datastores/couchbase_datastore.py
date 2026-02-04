@@ -7,7 +7,7 @@ Copyright (c) 2020 MotiveMetrics. All rights reserved.
 from couchbase.cluster import Cluster
 from couchbase.auth import PasswordAuthenticator
 # from couchbase.management.buckets import BucketManager
-from couchbase.options import ClusterOptions
+from couchbase.options import ClusterOptions, ReplaceOptions
 import couchbase.exceptions
 import psutil
 
@@ -86,12 +86,12 @@ class CouchbaseDatastore(object):
 
     @retry_on_timeouts
     def update(self, key, value, **kwargs):
-        result = self.collection.replace(key, value, **kwargs)
+        result = self.collection.replace(key, value, ReplaceOptions(**kwargs))
         return result.success
 
     @retry_on_timeouts
     def update_with_cas(self, key, value, **kwargs):
-        result = self.collection.replace(key, value, **kwargs)
+        result = self.collection.replace(key, value, ReplaceOptions(**kwargs))
         return result.success, result.cas
 
     @retry_on_timeouts
@@ -105,7 +105,7 @@ class CouchbaseDatastore(object):
         # on incorrect CAS, so we need to create our own upsert using
         # replace
         try:
-            result = self.collection.replace(key, value, **kwargs)
+            result = self.collection.replace(key, value, ReplaceOptions(**kwargs))
         except couchbase.exceptions.DocumentNotFoundException:
             result = self.collection.insert(key, value, **kwargs)
         return result.success, result.cas
