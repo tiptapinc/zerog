@@ -266,10 +266,13 @@ class BaseJob(ABC):
         # In case of an error, reload the job from the datastore and retry.
 
         # NOTE: How much is couchbase dependent?
+        log.info('record change 1')
         for _ in range(10):
             try:
                 func(*args, **kwargs)
+                log.info('record change 2')
                 self.save()
+                log.info('record change 3')
                 return True
 
             except self.datastore.casException:
@@ -287,7 +290,9 @@ class BaseJob(ABC):
                 )
 
             time.sleep(random.random() / 10)
+            log.info('reload 1')
             self.reload()
+            log.info('reload 2')
 
         log.error(
             "pid {0}, uuid {1} save failed - too many collisions".format(
@@ -308,10 +313,15 @@ class BaseJob(ABC):
         :returns: ``None``
         """
         def do_update_attrs():
+            log.info('do_update_attrs 1')
             for attr, value in kwargs.items():
                 setattr(self, attr, value)
 
+            log.info('do_update_attrs 2')
+
+        log.info('update attr1')
         self.record_change(do_update_attrs)
+        log.info('update attr2')
 
     def record_event(self, msg):
         """
