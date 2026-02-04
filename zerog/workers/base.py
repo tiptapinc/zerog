@@ -226,11 +226,15 @@ class BaseWorker(object):
                     queueJob.delete()
                     return
 
+            log.info('start 1')
             self.conn.send(
                 json.dumps(dict(type="runningJobUuid", value=uuid))
             )
+            log.info('conn 1')
             job.update_attrs(running=True)
+            log.info('update 1')
             returnVal = job.run()
+            log.info('run 1')
             log.info(
                 f"{self.name}:{self.parentPid}:{self.pid} | "
                 f"completed {job.JOB_TYPE} {job.uuid}, returnVal {returnVal}"
